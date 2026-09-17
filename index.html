@@ -36,6 +36,7 @@
     width: 232px; flex-shrink:0; height:100vh; position:sticky; top:0;
     background: var(--bg-panel); border-right:1px solid var(--border);
     padding: 22px 14px; overflow-y:auto;
+    display:flex; flex-direction:column;
   }
   .sidebar .brand{ display:flex; align-items:center; gap:8px; padding: 4px 8px 22px; }
   .sidebar .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--blue-bright); box-shadow:0 0 10px var(--blue-bright); }
@@ -54,6 +55,16 @@
   .nav-item.active{ background: var(--surface-2); color:var(--text); box-shadow: inset 2px 0 0 var(--blue-bright); }
   .nav-item .path{ color:var(--text-faint); font-size:10.5px; margin-left:auto; }
   .nav-item.active .path{ color:var(--blue-bright); }
+
+  /* ---------- Demo role switcher ---------- */
+  .role-switch{ margin-top:auto; padding-top:16px; border-top:1px solid var(--border); }
+  .role-switch button{
+    display:inline-block; width:auto; margin:3px 4px 0 0; padding:5px 10px;
+    font-family:'Inter',sans-serif; font-size:11px; border-radius:6px; cursor:pointer;
+    background:transparent; border:1px solid var(--border); color:var(--text-faint);
+  }
+  .role-switch button:hover{ color:var(--text); border-color:var(--blue-bright); }
+  .role-switch button.on{ color:#0A0D14; background:var(--blue-bright); border-color:var(--blue-bright); }
 
   /* ---------- Stage ---------- */
   .stage{ flex:1; min-height:100vh; }
@@ -177,7 +188,7 @@
 <nav class="sidebar">
   <div class="brand"><span class="dot"></span><span>RAD PLAYSTATION</span></div>
 
-  <div class="nav-group">
+  <div class="nav-group" data-role="customer">
     <div class="group-label">Customer <span>mobile</span></div>
     <button class="nav-item" id="nav-customer-home" onclick="showPage('customer-home')">Home <span class="path">/</span></button>
     <button class="nav-item active" id="nav-customer-table" onclick="showPage('customer-table')">TV detail <span class="path">/tv/:id</span></button>
@@ -188,7 +199,7 @@
     <button class="nav-item" id="nav-customer-feedback" onclick="showPage('customer-feedback')">Feedback <span class="path">/feedback</span></button>
   </div>
 
-  <div class="nav-group">
+  <div class="nav-group" data-role="admin">
     <div class="group-label">Admin <span>desktop</span></div>
     <button class="nav-item" id="nav-admin-login" onclick="showPage('admin-login')">Login <span class="path">/admin/login</span></button>
     <button class="nav-item" id="nav-admin-home" onclick="showPage('admin-home')">Dashboard <span class="path">/admin/home</span></button>
@@ -196,7 +207,7 @@
     <button class="nav-item" id="nav-admin-closing" onclick="showPage('admin-closing')">Closing <span class="path">/admin/closing</span></button>
   </div>
 
-  <div class="nav-group">
+  <div class="nav-group" data-role="owner">
     <div class="group-label">Owner <span>mobile</span></div>
     <button class="nav-item" id="nav-owner-login" onclick="showPage('owner-login')">Login <span class="path">/owner/login</span></button>
     <button class="nav-item" id="nav-owner-live" onclick="showPage('owner-live')">Live floor <span class="path">/owner/live</span></button>
@@ -205,6 +216,14 @@
     <button class="nav-item" id="nav-owner-history" onclick="showPage('owner-history')">Transaction history <span class="path">/owner/history</span></button>
     <button class="nav-item" id="nav-owner-people" onclick="showPage('owner-people')">Operators &amp; Members <span class="path">/owner/people</span></button>
     <button class="nav-item" id="nav-owner-stock" onclick="showPage('owner-stock')">Stock &amp; Rewards <span class="path">/owner/stock</span></button>
+  </div>
+
+  <!-- Demo-only role switcher. Delete this block for a production build. -->
+  <div class="role-switch">
+    <div class="group-label">Switch view</div>
+    <button onclick="goRole('customer')">Customer</button>
+    <button onclick="goRole('admin')">Admin</button>
+    <button onclick="goRole('owner')">Owner</button>
   </div>
 </nav>
 
@@ -4538,69 +4557,128 @@
     }
   }
 
-  /* ================= ROUTER ================= */
-  var ROUTES = {
-    '/':                  'customer-home',
-    '/tv':                'customer-table',
-    '/payment/cash':      'customer-payment-cash',
-    '/payment/qris':      'customer-payment-qris-pending',
-    '/member':            'customer-member',
-    '/feedback':          'customer-feedback',
-    '/admin/login':       'admin-login',
-    '/admin/home':        'admin-home',
-    '/admin/inventory':   'admin-inventory',
-    '/admin/closing':     'admin-closing',
-    '/owner/login':       'owner-login',
-    '/owner/live':        'owner-live',
-    '/owner/stats':       'owner-revenue',
-    '/owner/reports':     'owner-reports',
-    '/owner/history':     'owner-history',
-    '/owner/people':      'owner-people',
-    '/owner/stock':       'owner-stock'
-  };
+  /* ================= ROLE-SCOPED ROUTER ================= */
 
-  var PAGE_URLS = {
-    'customer-home':                 '/',
-    'customer-table':                '/tv/1',
-    'customer-payment-cash':         '/payment/cash/1',
-    'customer-payment-qris-pending': '/payment/qris/1',
-    'customer-payment-qris-paid':    '/payment/qris/1?paid=true',
-    'customer-member':               '/member',
-    'customer-feedback':             '/feedback',
-    'admin-login':                   '/admin/login',
-    'admin-home':                    '/admin/home',
-    'admin-inventory':               '/admin/inventory',
-    'admin-closing':                 '/admin/closing',
-    'owner-login':                   '/owner/login',
-    'owner-live':                    '/owner/live',
-    'owner-revenue':                 '/owner/stats',
-    'owner-reports':                 '/owner/reports',
-    'owner-history':                 '/owner/history',
-    'owner-people':                  '/owner/people',
-    'owner-stock':                   '/owner/stock'
-  };
-
-  function routeToPage(path, search) {
-    search = search || '';
-    // Strip trailing slash (except root)
-    if (path.length > 1 && path.slice(-1) === '/') path = path.slice(0, -1);
-    // Exact match
-    if (ROUTES[path]) {
-      if (path === '/payment/qris' && search.indexOf('paid=true') !== -1) {
-        return 'customer-payment-qris-paid';
+  /* Each role owns a URL namespace and a page set.
+     The URL prefix alone decides which role is active; pages outside
+     that role are removed from the DOM on boot, so /admin can never
+     render a customer screen and vice versa. */
+  var ROLES = {
+    customer: {
+      prefix: '',                 // lives at the site root
+      home:   '/',
+      dynamic: ['/tv', '/payment/cash', '/payment/qris'],   // accept a trailing :id
+      routes: {
+        '/':             'customer-home',
+        '/tv':           'customer-table',
+        '/payment/cash': 'customer-payment-cash',
+        '/payment/qris': 'customer-payment-qris-pending',
+        '/member':       'customer-member',
+        '/feedback':     'customer-feedback'
+      },
+      urls: {
+        'customer-home':                 '/',
+        'customer-table':                '/tv/1',
+        'customer-payment-cash':         '/payment/cash/1',
+        'customer-payment-qris-pending': '/payment/qris/1',
+        'customer-payment-qris-paid':    '/payment/qris/1?paid=true',
+        'customer-member':               '/member',
+        'customer-feedback':             '/feedback'
       }
-      return ROUTES[path];
+    },
+    admin: {
+      prefix: '/admin',
+      home:   '/admin/login',
+      dynamic: [],
+      routes: {
+        '/admin':           'admin-login',
+        '/admin/login':     'admin-login',
+        '/admin/home':      'admin-home',
+        '/admin/inventory': 'admin-inventory',
+        '/admin/closing':   'admin-closing'
+      },
+      urls: {
+        'admin-login':     '/admin/login',
+        'admin-home':      '/admin/home',
+        'admin-inventory': '/admin/inventory',
+        'admin-closing':   '/admin/closing'
+      }
+    },
+    owner: {
+      prefix: '/owner',
+      home:   '/owner/login',
+      dynamic: [],
+      routes: {
+        '/owner':          'owner-login',
+        '/owner/login':    'owner-login',
+        '/owner/live':     'owner-live',
+        '/owner/stats':    'owner-revenue',
+        '/owner/reports':  'owner-reports',
+        '/owner/history':  'owner-history',
+        '/owner/people':   'owner-people',
+        '/owner/stock':    'owner-stock'
+      },
+      urls: {
+        'owner-login':   '/owner/login',
+        'owner-live':    '/owner/live',
+        'owner-revenue': '/owner/stats',
+        'owner-reports': '/owner/reports',
+        'owner-history': '/owner/history',
+        'owner-people':  '/owner/people',
+        'owner-stock':   '/owner/stock'
+      }
     }
-    // Dynamic segment: /tv/123 → try /tv, /payment/cash/5 → try /payment/cash
-    var parts = path.split('/');
-    if (parts.length > 1) {
-      var parent = parts.slice(0, -1).join('/') || '/';
-      if (ROUTES[parent]) return ROUTES[parent];
+  };
+
+  var activeRole = null;   // set once, on boot
+  var R = null;            // shorthand for ROLES[activeRole]
+
+  function normalizePath(path) {
+    if (path.length > 1 && path.slice(-1) === '/') path = path.slice(0, -1);
+    return path || '/';
+  }
+
+  /* Is this path one of the role's dynamic routes carrying an :id? */
+  function isDynamic(path) {
+    for (var i = 0; i < R.dynamic.length; i++) {
+      if (path.indexOf(R.dynamic[i] + '/') === 0) return true;
     }
-    return 'customer-home'; // fallback
+    return false;
+  }
+
+  /* URL prefix -> role. Everything that isn't /admin or /owner is customer. */
+  function roleFromPath(path) {
+    path = normalizePath(path);
+    if (path === '/admin' || path.indexOf('/admin/') === 0) return 'admin';
+    if (path === '/owner' || path.indexOf('/owner/') === 0) return 'owner';
+    return 'customer';
+  }
+
+  /* Resolve a path to a page id WITHIN the active role.
+     Returns null for anything this role doesn't own, so the caller can
+     redirect to the role's home instead of leaving a dead URL in the bar. */
+  function routeToPage(path, search) {
+    path = normalizePath(path);
+    search = search || '';
+    var qrisPaid = search.indexOf('paid=true') !== -1;
+
+    if (R.routes[path]) {
+      if (path === '/payment/qris' && qrisPaid) return 'customer-payment-qris-paid';
+      return R.routes[path];
+    }
+    // Only declared dynamic routes may carry a trailing :id — /tv/7, /payment/cash/12.
+    for (var i = 0; i < R.dynamic.length; i++) {
+      var base = R.dynamic[i];
+      if (path.indexOf(base + '/') === 0 && path.slice(base.length + 1).indexOf('/') === -1) {
+        if (base === '/payment/qris' && qrisPaid) return 'customer-payment-qris-paid';
+        return R.routes[base];
+      }
+    }
+    return null;
   }
 
   function showPage(id, pushState) {
+    if (!R.urls[id]) return;           // not part of this role — ignore
     document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
     var pageEl = document.getElementById('page-' + id);
     if (pageEl) pageEl.classList.add('active');
@@ -4609,24 +4687,61 @@
     if (navBtn) navBtn.classList.add('active');
     var stageEl = document.querySelector('.stage');
     if (stageEl) stageEl.scrollTop = 0;
-    // Update browser URL
     if (pushState !== false) {
-      var url = PAGE_URLS[id] || '/';
-      var current = window.location.pathname + window.location.search;
-      if (current !== url) history.pushState({ page: id }, '', url);
+      var url = R.urls[id];
+      if (window.location.pathname + window.location.search !== url) {
+        history.pushState({ page: id }, '', url);
+      }
     }
   }
 
+  /* Jump to another role — a full document load, so the new role boots clean. */
+  function goRole(role) {
+    if (role === activeRole) return;
+    window.location.href = ROLES[role].home;
+  }
+
   function initRouter() {
-    window.addEventListener('popstate', function(e) {
-      var id = (e.state && e.state.page)
-        ? e.state.page
-        : routeToPage(window.location.pathname, window.location.search);
-      showPage(id, false);
+    activeRole = roleFromPath(window.location.pathname);
+    R = ROLES[activeRole];
+    document.body.setAttribute('data-role', activeRole);
+
+    /* Show only this role's nav group. Other roles' pages stay in the DOM
+       (hidden — .page is display:none unless .active) because the mockup
+       shares state across roles: a counter payment writes into the owner's
+       transaction history, closing reads the admin tills, and so on.
+       The router is what enforces the boundary: showPage() refuses any id
+       outside R.urls, so no other role's screen can ever become active. */
+    document.querySelectorAll('.nav-group').forEach(function(g) {
+      if (g.getAttribute('data-role') !== activeRole) g.parentNode.removeChild(g);
     });
-    var id = routeToPage(window.location.pathname, window.location.search);
+    document.querySelectorAll('.role-switch button').forEach(function(b) {
+      if (b.textContent.trim().toLowerCase() === activeRole) b.classList.add('on');
+    });
+
+    var here = normalizePath(window.location.pathname);
+    var id = routeToPage(here, window.location.search);
+    if (!id) {
+      // Unknown path for this role -> fall back to its home, and clean the URL.
+      id = R.routes[R.home];
+      history.replaceState({ page: id }, '', R.home);
+    } else if (isDynamic(here)) {
+      // Keep the :id the visitor arrived with (/tv/7 stays /tv/7).
+      history.replaceState({ page: id }, '', here + window.location.search);
+    } else {
+      // Canonicalise aliases: /admin -> /admin/login, /owner -> /owner/login.
+      history.replaceState({ page: id }, '', R.urls[id]);
+    }
     showPage(id, false);
-    history.replaceState({ page: id }, '', window.location.pathname + window.location.search);
+
+    window.addEventListener('popstate', function(e) {
+      if (roleFromPath(window.location.pathname) !== activeRole) {
+        window.location.reload();                // crossed into another role
+        return;
+      }
+      var p = (e.state && e.state.page) || routeToPage(window.location.pathname, window.location.search);
+      showPage(p || R.routes[R.home], false);
+    });
   }
 
   initRouter();
