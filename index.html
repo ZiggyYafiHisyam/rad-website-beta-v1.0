@@ -4538,15 +4538,98 @@
     }
   }
 
-  function showPage(id){
+  /* ================= ROUTER ================= */
+  var ROUTES = {
+    '/':                  'customer-home',
+    '/tv':                'customer-table',
+    '/payment/cash':      'customer-payment-cash',
+    '/payment/qris':      'customer-payment-qris-pending',
+    '/member':            'customer-member',
+    '/feedback':          'customer-feedback',
+    '/admin/login':       'admin-login',
+    '/admin/home':        'admin-home',
+    '/admin/inventory':   'admin-inventory',
+    '/admin/closing':     'admin-closing',
+    '/owner/login':       'owner-login',
+    '/owner/live':        'owner-live',
+    '/owner/stats':       'owner-revenue',
+    '/owner/reports':     'owner-reports',
+    '/owner/history':     'owner-history',
+    '/owner/people':      'owner-people',
+    '/owner/stock':       'owner-stock'
+  };
+
+  var PAGE_URLS = {
+    'customer-home':                 '/',
+    'customer-table':                '/tv/1',
+    'customer-payment-cash':         '/payment/cash/1',
+    'customer-payment-qris-pending': '/payment/qris/1',
+    'customer-payment-qris-paid':    '/payment/qris/1?paid=true',
+    'customer-member':               '/member',
+    'customer-feedback':             '/feedback',
+    'admin-login':                   '/admin/login',
+    'admin-home':                    '/admin/home',
+    'admin-inventory':               '/admin/inventory',
+    'admin-closing':                 '/admin/closing',
+    'owner-login':                   '/owner/login',
+    'owner-live':                    '/owner/live',
+    'owner-revenue':                 '/owner/stats',
+    'owner-reports':                 '/owner/reports',
+    'owner-history':                 '/owner/history',
+    'owner-people':                  '/owner/people',
+    'owner-stock':                   '/owner/stock'
+  };
+
+  function routeToPage(path, search) {
+    search = search || '';
+    // Strip trailing slash (except root)
+    if (path.length > 1 && path.slice(-1) === '/') path = path.slice(0, -1);
+    // Exact match
+    if (ROUTES[path]) {
+      if (path === '/payment/qris' && search.indexOf('paid=true') !== -1) {
+        return 'customer-payment-qris-paid';
+      }
+      return ROUTES[path];
+    }
+    // Dynamic segment: /tv/123 → try /tv, /payment/cash/5 → try /payment/cash
+    var parts = path.split('/');
+    if (parts.length > 1) {
+      var parent = parts.slice(0, -1).join('/') || '/';
+      if (ROUTES[parent]) return ROUTES[parent];
+    }
+    return 'customer-home'; // fallback
+  }
+
+  function showPage(id, pushState) {
     document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-    document.getElementById('page-' + id).classList.add('active');
+    var pageEl = document.getElementById('page-' + id);
+    if (pageEl) pageEl.classList.add('active');
     document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
     var navBtn = document.getElementById('nav-' + id);
-    if(navBtn) navBtn.classList.add('active');
+    if (navBtn) navBtn.classList.add('active');
     var stageEl = document.querySelector('.stage');
-    if(stageEl) stageEl.scrollTop = 0;
+    if (stageEl) stageEl.scrollTop = 0;
+    // Update browser URL
+    if (pushState !== false) {
+      var url = PAGE_URLS[id] || '/';
+      var current = window.location.pathname + window.location.search;
+      if (current !== url) history.pushState({ page: id }, '', url);
+    }
   }
+
+  function initRouter() {
+    window.addEventListener('popstate', function(e) {
+      var id = (e.state && e.state.page)
+        ? e.state.page
+        : routeToPage(window.location.pathname, window.location.search);
+      showPage(id, false);
+    });
+    var id = routeToPage(window.location.pathname, window.location.search);
+    showPage(id, false);
+    history.replaceState({ page: id }, '', window.location.pathname + window.location.search);
+  }
+
+  initRouter();
 </script>
 </body>
 </html>
