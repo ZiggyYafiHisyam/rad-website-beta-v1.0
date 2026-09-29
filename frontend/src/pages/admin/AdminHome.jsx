@@ -39,7 +39,7 @@ export default function AdminHome() {
         </div>
         <div className="desktop-body">
           <div className="h-title" style={{ marginBottom: "16px" }}>Today's overview</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "14px", marginBottom: "26px" }}>
+          <div className="adm-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "14px", marginBottom: "26px" }}>
             <div className="metric">
               <div className="label">Total Pemasukan</div>
               <div className="value glow" id="dash-revenue">{rupiah(f.total)}</div>
@@ -61,13 +61,13 @@ export default function AdminHome() {
               <div className="value" id="dash-disc" style={{ fontSize: "16px", color: disc === 0 ? "var(--green)" : "var(--red)" }}>{signedRupiah(disc)}</div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "20px", marginBottom: "26px" }}>
+          <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "20px", marginBottom: "26px" }}>
             <div>
               <div className="row" style={{ alignItems: "center", marginBottom: "1px" }}>
                 <div className="section-label" style={{ margin: "0" }}>Daftar TV / Room</div>
                 <div className="btn sm ghost" onClick={orderOpen}>+ Order</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "10px" }}>
+              <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "10px" }}>
                 {BILLING_BOXES.map((bx) => <BillingBox key={bx.id} id={bx.id} name={bx.name} />)}
               </div>
             </div>
@@ -86,7 +86,7 @@ export default function AdminHome() {
               </div>
               <div className="card">
                 <div style={{ fontSize: "11px", color: "var(--text-faint)", marginBottom: "10px" }}>Customers cannot register themselves — this lands in the owner's queue.</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                   <div>
                     <label>Customer name</label>
                     <input type="text" id="op-req-name" placeholder="Full name" value={reqName} onChange={(e) => setReqName(e.target.value)} />
@@ -109,7 +109,7 @@ export default function AdminHome() {
             <div className="section-label" style={{ margin: "0" }}>Bookings Today</div>
             <span style={{ fontSize: "10.5px", color: "var(--text-faint)" }}>Starting a session clears the booking from this list</span>
           </div>
-          <div className="card" style={{ padding: "0", overflow: "hidden", marginTop: "8px" }}>
+          <div className="adm-table card" style={{ padding: "0", overflow: "hidden", marginTop: "8px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr 0.6fr 0.6fr 1.15fr", gap: "8px", padding: "9px 14px", fontSize: "10.5px", color: "var(--text-faint)", borderBottom: "1px solid var(--border)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               <span>TV / Room</span>
               <span>Customer</span>
@@ -124,7 +124,7 @@ export default function AdminHome() {
             <span className={'pill ' + (pendingRefunds ? 'booked' : 'off')} id="admin-refund-count">{pendingRefunds ? pendingRefunds + ' waiting for owner' : todaysReceipts().length + ' refundable'}</span>
           </div>
           <div style={{ fontSize: "10.5px", color: "var(--text-faint)", marginBottom: "8px" }}>You can start a refund here, but you cannot complete it. Every refund goes to the owner and only leaves the drawer once they approve.</div>
-          <div className="card" style={{ padding: "0", overflow: "hidden" }}>
+          <div className="adm-table card" style={{ padding: "0", overflow: "hidden" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr 0.7fr 0.7fr 1.15fr", gap: "8px", padding: "9px 14px", fontSize: "10.5px", color: "var(--text-faint)", borderBottom: "1px solid var(--border)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               <span>TV / Room</span>
               <span>Customer</span>

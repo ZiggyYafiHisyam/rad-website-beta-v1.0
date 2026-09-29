@@ -56,6 +56,17 @@ The same map drives all three places a URL is resolved:
 
 When adding a page, add its path to `src/routes.js` and to the `/index.html` rewrites in `vercel.json`.
 
+### Phones and computers
+
+The layout follows the screen width (CSS only, 768px breakpoint in `src/styles/app.css`):
+
+- Customer and owner mobile pages fill the whole screen on a phone, and show as a centred
+  phone-width column on a computer. The prototype's phone mockup and fake status bar are gone.
+- Operator (admin) pages keep the desktop layout on a computer; on a phone the grids stack
+  into one column and wide tables scroll sideways.
+- The owner desktop console (`/owner/desktop`) and the mobile owner pages stay reachable on both.
+- Popups never get wider than the screen.
+
 ## Layout
 
 ```

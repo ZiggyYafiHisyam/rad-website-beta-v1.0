@@ -21,7 +21,7 @@ export default function AdminInventory() {
           </div>
         </div>
         <div className="desktop-body">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", alignItems: "start", marginBottom: "26px" }}>
+          <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", alignItems: "start", marginBottom: "26px" }}>
             <div>
               <div className="row" style={{ marginBottom: "6px" }}>
                 <div className="h-title" style={{ fontSize: "15px" }}>Snacks</div>
@@ -58,7 +58,7 @@ export default function AdminInventory() {
             <div className="h-title">TVs & Rooms</div>
             <div className="btn sm ghost">+ Add TV / Room</div>
           </div>
-          <div className="card" style={{ padding: "0", overflow: "hidden", marginBottom: "24px" }}>
+          <div className="adm-table card" style={{ padding: "0", overflow: "hidden", marginBottom: "24px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1.7fr 0.85fr 1fr", gap: "8px", padding: "9px 14px", fontSize: "10.5px", color: "var(--text-faint)", borderBottom: "1px solid var(--border)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               <span>Name</span>
               <span>Amenities</span>

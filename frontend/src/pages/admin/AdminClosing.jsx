@@ -30,7 +30,7 @@ export default function AdminClosing() {
               <div className="section-label" style={{ margin: "0" }}>Cash & QRIS</div>
               <span className="pill owner">2 operator inputs</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 14px" }}>
+            <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 14px" }}>
               <div>
                 <label>Cash in cashier · you count</label>
                 <input type="text" id="close-cash-actual" placeholder="Rp 0" value={S.closeCashActual} onChange={(e) => closeSetCash(e.target.value)} />
@@ -53,7 +53,7 @@ export default function AdminClosing() {
               <div className="close-ro" id="close-refunds" style={{ color: "var(--red)" }}>{'-' + rupiah(f.refunds)}</div>
               <div style={{ fontSize: "10.5px", color: "var(--text-faint)", marginTop: "6px" }}>Already taken out of the expected figures above, so what you count should still match.</div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "16px", borderTop: "1px solid var(--border)", paddingTop: "14px" }}>
+            <div className="adm-stack" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginTop: "16px", borderTop: "1px solid var(--border)", paddingTop: "14px" }}>
               <div>
                 <label>Discrepancy · system</label>
                 <div className="close-ro" id="close-disc" style={{ color: disc === 0 ? "var(--green)" : "var(--red)" }}>{signedRupiah(disc)}</div>

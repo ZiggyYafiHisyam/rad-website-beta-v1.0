@@ -5,16 +5,13 @@ export function Page({ id, className, children }) {
   return <div className={'page active' + (className ? ' ' + className : '')} id={'page-' + id}>{children}</div>;
 }
 
-/* Mobile frame used by the customer and owner pages */
+/* App screen used by the customer and owner pages: full screen on a phone,
+   a centred phone-width column on a computer (see .phone-* in app.css) */
 export function Phone({ children }) {
   return (
     <div className="phone-stage">
       <div className="phone-shell">
         <div className="phone-screen">
-          <div className="status-bar">
-            <span>9:41</span>
-            <span>●●● 100%</span>
-          </div>
           {children}
         </div>
       </div>
