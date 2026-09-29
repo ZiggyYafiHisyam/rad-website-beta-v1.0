@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=0.8, viewport-fit=cover">
+<script>
+  /* Set the phone viewport before the first paint (same rule as src/viewport.js) */
+  (function () {
+    var p = location.pathname;
+    if (p === '/admin' || p.indexOf('/admin/') === 0 || p === '/owner/desktop' || p.indexOf('/owner/desktop/') === 0)
+      document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=980, viewport-fit=cover');
+  })();
+</script>
 <title>RAD Playstation — Online v1.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">

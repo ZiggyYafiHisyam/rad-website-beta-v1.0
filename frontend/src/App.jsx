@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { setNavigator, startClock } from './store';
 import Modals from './components/Modals';
 import { resolveRedirect } from './routes';
+import { applyViewport } from './viewport';
 
 import CustomerHome from './pages/customer/CustomerHome';
 import CustomerTable from './pages/customer/CustomerTable';
@@ -37,6 +38,8 @@ export default function App() {
 
   useEffect(() => { setNavigator(navigate); }, [navigate]);
   useEffect(() => { startClock(); }, []);
+  /* Phones: desktop layout for operator pages / owner console, app layout elsewhere */
+  useLayoutEffect(() => { applyViewport(pathname); }, [pathname]);
   /* Every page opens scrolled to the top */
   useEffect(() => { window.scrollTo(0, 0); }, [pathname, search]);
 

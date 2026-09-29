@@ -20,6 +20,9 @@
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{ height:100%; }
+/* Stop mobile Chrome/Safari from enlarging text on their own ("font boosting") —
+   the reason pages looked oversized on phones unless "Desktop site" was on */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
 body{
   background: var(--bg); color: var(--text); font-family:'Inter', sans-serif;
   display:flex; min-height:100vh;
