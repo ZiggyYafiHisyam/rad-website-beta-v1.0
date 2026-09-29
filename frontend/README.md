@@ -58,14 +58,22 @@ When adding a page, add its path to `src/routes.js` and to the `/index.html` rew
 
 ### Phones and computers
 
-Computers get the layout as designed. Phones are handled in two places:
+Computers and tablets get the layout as designed. Phones use fit-to-page: each page is laid out
+at a fixed width and the browser scales it to exactly fill the screen, so it looks the same on
+any phone and any browser (Chrome old and new, Safari, Samsung Internet, Firefox):
 
-- `src/viewport.js` (also run inline in `index.html` before the first paint) sets the phone
-  viewport per page. Operator pages and `/owner/desktop` render the desktop layout 980px wide,
-  shrunk to fit — what Chrome's "Desktop site" does, without switching it on. Customer and owner
-  mobile pages use the phone's own width at 80% scale. Computers ignore this setting.
-- `src/styles/app.css` turns off mobile text autosizing ("font boosting") and, on narrow screens,
-  lets the app pages fill the phone, stacks operator grids and keeps popups inside the screen.
+| Pages | Layout width on a phone |
+| --- | --- |
+| Customer + owner app pages | 480px |
+| Operator pages (navbar + desktop page) | 1212px |
+| Owner desktop console | 980px |
+
+- `src/viewport.js` sets this per page, and `index.html` runs the same rule inline before the
+  first paint. It also measures the visible screen height (`--app-h`), because older browsers
+  put `100vh` under the address bar.
+- `src/styles/app.css` turns off mobile text autosizing and, on narrow screens, lets the app
+  pages fill the phone and keeps popups inside the screen.
+- The build targets older browsers too (`vite.config.js`).
 
 ## Layout
 

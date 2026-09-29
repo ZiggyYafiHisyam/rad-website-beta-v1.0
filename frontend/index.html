@@ -2,14 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=0.8, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <script>
-  /* Set the phone viewport before the first paint (same rule as src/viewport.js) */
+  /* Fit-to-page before the first paint — same rule as src/viewport.js.
+     Written in old-style JS on purpose so it runs on any phone browser. */
   (function () {
     var p = location.pathname;
-    var meta = document.querySelector('meta[name="viewport"]');
-    if (p === '/admin' || p.indexOf('/admin/') === 0) meta.setAttribute('content', 'width=1212, viewport-fit=cover');
-    else if (p === '/owner/desktop' || p.indexOf('/owner/desktop/') === 0) meta.setAttribute('content', 'width=980, viewport-fit=cover');
+    var phone = Math.min(screen.width, screen.height) < 768;
+    if (phone) {
+      var w = 480;
+      if (p === '/admin' || p.indexOf('/admin/') === 0) w = 1212;
+      else if (p === '/owner/desktop' || p.indexOf('/owner/desktop/') === 0) w = 980;
+      document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=' + w + ', viewport-fit=cover');
+    }
+    function h() { document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px'); }
+    h();
+    window.addEventListener('resize', h);
   })();
 </script>
 <title>RAD Playstation — Online v1.0</title>

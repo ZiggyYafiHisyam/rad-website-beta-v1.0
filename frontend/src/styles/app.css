@@ -23,6 +23,8 @@ html,body{ height:100%; }
 /* Stop mobile Chrome/Safari from enlarging text on their own ("font boosting") —
    the reason pages looked oversized on phones unless "Desktop site" was on */
 html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+/* Popups cover the screen with inset:0 inline; older browsers need the long form */
+[id$="-modal"]{ top:0; right:0; bottom:0; left:0; }
 body{
   background: var(--bg); color: var(--text); font-family:'Inter', sans-serif;
   display:flex; min-height:100vh;
@@ -67,12 +69,13 @@ h1,h2,h3,.mono-head{ font-family:'Rajdhani', sans-serif; }
    The prototype drew these inside a phone mockup; now they ARE the app:
    a phone-width column centred on a computer, the whole screen on a phone. */
 .phone-stage{
-  min-height:100vh; min-height:100dvh; display:flex; justify-content:center;
+  min-height:100vh; min-height:var(--app-h, 100vh); display:flex; justify-content:center;
   background: radial-gradient(ellipse 900px 500px at 50% 20%, #0E1A2E 0%, var(--bg) 60%);
 }
 .phone-shell{ width:100%; max-width:430px; }
 .phone-screen{
-  background: var(--bg); overflow:hidden; height:100vh; height:100dvh;
+  /* --app-h = the visible screen height, measured in index.html / src/viewport.js */
+  background: var(--bg); overflow:hidden; height:100vh; height:var(--app-h, 100vh);
   display:flex; flex-direction:column; position:relative;
   border-left:1px solid var(--border); border-right:1px solid var(--border);
   box-shadow: 0 0 60px rgba(0,0,0,0.45);

@@ -28,4 +28,6 @@ function urlRouter() {
 
 export default defineConfig({
   plugins: [react(), urlRouter()],
+  /* Compile down so older phone browsers (e.g. an old Android Chrome) can run it */
+  build: { target: ['es2018', 'chrome70', 'safari12', 'firefox68'] },
 });

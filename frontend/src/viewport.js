@@ -1,22 +1,33 @@
-/* ================= PHONE VIEWPORT =================
-   Phones size the page from <meta name="viewport">; computers ignore it, so
-   nothing here changes the desktop view.
+/* ================= PHONE VIEWPORT (fit to page) =================
+   Every page has a layout width, and on a phone the browser shrinks or grows
+   that width to exactly fill the screen. A fixed-width viewport is the one
+   scaling method every mobile browser supports the same way (Chrome old and
+   new, Safari, Samsung Internet, Firefox), so a page looks identical on any
+   phone, only bigger or smaller.
 
-   - Operator pages (navbar 232px + desktop layout 980px) and the owner desktop
-     console (980px): render the desktop layout and let the phone shrink it to
-     fit — what Chrome's "Desktop site" does, without switching it on.
-   - Every other page (customer app, owner mobile pages): the phone's own
-     width at 80% scale, so the app layout shows a bit more per screen. */
-const OPERATOR_LAYOUT = 'width=1212, viewport-fit=cover';
-const DESKTOP_LAYOUT = 'width=980, viewport-fit=cover';
-const APP_LAYOUT = 'width=device-width, initial-scale=0.8, viewport-fit=cover';
+     customer + owner app pages   480px   (what an iPhone showed before)
+     operator pages              1212px   (navbar 232 + desktop page 980)
+     owner desktop console        980px   (what Chrome's "Desktop site" uses)
 
-function isOperator(pathname) {
-  return pathname === '/admin' || pathname.indexOf('/admin/') === 0;
+   Computers ignore <meta name="viewport">. Tablets (shorter side 768px or
+   more) keep the device width, so they lay out like a computer.
+
+   The same rule runs inline in index.html before the first paint. */
+export const LAYOUT_WIDTH = { app: 480, operator: 1212, console: 980 };
+
+export function layoutFor(pathname) {
+  if (pathname === '/admin' || pathname.indexOf('/admin/') === 0) return 'operator';
+  if (pathname === '/owner/desktop' || pathname.indexOf('/owner/desktop/') === 0) return 'console';
+  return 'app';
 }
 
-function isOwnerConsole(pathname) {
-  return pathname === '/owner/desktop' || pathname.indexOf('/owner/desktop/') === 0;
+function isPhone() {
+  return Math.min(window.screen.width, window.screen.height) < 768;
+}
+
+export function viewportContent(pathname) {
+  if (!isPhone()) return 'width=device-width, initial-scale=1, viewport-fit=cover';
+  return 'width=' + LAYOUT_WIDTH[layoutFor(pathname)] + ', viewport-fit=cover';
 }
 
 export function applyViewport(pathname) {
@@ -26,6 +37,22 @@ export function applyViewport(pathname) {
     meta.setAttribute('name', 'viewport');
     document.head.appendChild(meta);
   }
-  const content = isOperator(pathname) ? OPERATOR_LAYOUT : (isOwnerConsole(pathname) ? DESKTOP_LAYOUT : APP_LAYOUT);
-  if (meta.getAttribute('content') !== content) meta.setAttribute('content', content);
+  const content = viewportContent(pathname);
+  if (meta.getAttribute('content') !== content) {
+    meta.setAttribute('content', content);
+    /* the visible height (in page pixels) changes with the scale */
+    setTimeout(syncAppHeight, 60);
+  }
+}
+
+/* Height of the visible screen in page pixels, as --app-h. Older browsers do
+   not know 100dvh, and there 100vh runs under the address bar. */
+export function syncAppHeight() {
+  document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+}
+
+export function watchAppHeight() {
+  syncAppHeight();
+  window.addEventListener('resize', syncAppHeight);
+  window.addEventListener('orientationchange', () => setTimeout(syncAppHeight, 150));
 }
