@@ -7,8 +7,9 @@
   /* Set the phone viewport before the first paint (same rule as src/viewport.js) */
   (function () {
     var p = location.pathname;
-    if (p === '/admin' || p.indexOf('/admin/') === 0 || p === '/owner/desktop' || p.indexOf('/owner/desktop/') === 0)
-      document.querySelector('meta[name="viewport"]').setAttribute('content', 'width=980, viewport-fit=cover');
+    var meta = document.querySelector('meta[name="viewport"]');
+    if (p === '/admin' || p.indexOf('/admin/') === 0) meta.setAttribute('content', 'width=1212, viewport-fit=cover');
+    else if (p === '/owner/desktop' || p.indexOf('/owner/desktop/') === 0) meta.setAttribute('content', 'width=980, viewport-fit=cover');
   })();
 </script>
 <title>RAD Playstation — Online v1.0</title>

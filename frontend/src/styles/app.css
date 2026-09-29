@@ -29,6 +29,35 @@ body{
 }
 h1,h2,h3,.mono-head{ font-family:'Rajdhani', sans-serif; }
 
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width: 232px; flex-shrink:0; height:100vh; position:sticky; top:0;
+  background: var(--bg-panel); border-right:1px solid var(--border);
+  padding: 22px 14px; overflow-y:auto;
+}
+.sidebar .brand{ display:flex; align-items:center; gap:8px; padding: 4px 8px 22px; }
+.sidebar .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--blue-bright); box-shadow:0 0 10px var(--blue-bright); }
+.sidebar .brand span{ font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px; letter-spacing:2px; color:var(--blue-bright); }
+.nav-group{ margin-bottom: 20px; }
+.nav-group .group-label{
+  font-size:10px; letter-spacing:1.5px; color:var(--text-faint); text-transform:uppercase;
+  font-weight:600; padding: 0 10px; margin-bottom:6px; display:flex; justify-content:space-between;
+}
+.nav-item{
+  display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+  padding:8px 10px; border-radius:7px; border:none; background:transparent; color:var(--text-dim);
+  font-family:'Inter',sans-serif; font-size:12.5px; cursor:pointer; margin-bottom:2px;
+}
+.nav-item:hover{ background: var(--surface); color:var(--text); }
+.nav-item.active{ background: var(--surface-2); color:var(--text); box-shadow: inset 2px 0 0 var(--blue-bright); }
+.nav-item .path{ color:var(--text-faint); font-size:10.5px; margin-left:auto; }
+.nav-item.active .path{ color:var(--blue-bright); }
+
+
+/* Operator pages: navbar on the left, page on the right */
+.admin-shell{ display:flex; min-height:100vh; }
+.admin-main{ flex:1; min-width:0; }
+
 /* ---------- Stage ---------- */
 .stage{ flex:1; min-height:100vh; }
 .page{ display:none; min-height:100vh; }
