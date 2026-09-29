@@ -1,9 +1,8 @@
-import { S, notify, showPage, ROOM_META, HIST_DATES, MEMBER_POINT_CAP } from './state';
-import { rupiah, billingFormatClock, billingFormatDuration } from './format';
-import { liveRoomById, bookingById, addonFree, addonRelease } from './inventory';
-import { memberAward } from './members';
-import { adminOverride, ownerTxn } from './audit';
+import { S, notify, ROOM_META } from './state';
+import { billingFormatClock, billingFormatDuration } from './format';
+import { liveRoomById, bookingById, addonFree } from './inventory';
 import { docOpen } from './docs';
+import { api, run, once } from './api';
 
 /* The eight boxes on the operator dashboard, with the data-name each one carried */
 export const BILLING_BOXES = [
@@ -31,14 +30,6 @@ export function personalAmount(st) {
   return Math.round(personalHours(st.elapsedSec) * (st.rate || 50000));
 }
 
-/* ================= OWNER: RUNNING SESSION DETAIL ================= */
-export function sessionLog(boxId, text) {
-  const st = S.billingState[boxId];
-  if (!st) return;
-  if (!st.log) st.log = [];
-  st.log.push({ t: billingFormatClock(new Date()), text: text });
-}
-
 /* ================= BILLING MODAL ================= */
 export function billingOpenStart(boxId, displayName) {
   const ri = liveRoomById(boxId);
@@ -64,45 +55,20 @@ export function billingStep(delta) {
   notify();
 }
 
-export function billingConfirmStart() {
+export async function billingConfirmStart() {
   const m = S.ui.billing;
   const name = m.customer.trim();
   if (!name) { alert('Please enter the customer name'); return; }
-  const boxId = m.boxId;
-  const rateInfo = liveRoomById(boxId);
-  const rate = rateInfo ? rateInfo.rate : 50000;
-  const roomName = rateInfo ? rateInfo.name : boxId;
-  if (m.mode === 'personal') {
-    S.billingState[boxId] = {
-      running: true, mode: 'personal', paused: false,
-      customer: name, elapsedSec: 0, remainingSec: 0, totalSec: 0,
-      rate: rate, startedAt: new Date()
-    };
-    S.sessionCharges[boxId] = [];
-    sessionLog(boxId, 'Personal session started at the counter · stopwatch billing');
-    ownerTxn({ room: roomName, cust: name, detail: 'personal · stopwatch started', amt: 0, method: 'Running', by: S.activeOperator });
-  } else {
-    const hours = m.hours;
-    S.billingState[boxId] = {
-      running: true, mode: 'fixed',
-      customer: name,
-      remainingSec: hours * 3600,
-      totalSec: hours * 3600,
-      rate: rate, startedAt: new Date()
-    };
-    S.sessionCharges[boxId] = [];
-    sessionLog(boxId, 'Session started at the counter · ' + hours + ' jam');
-    ownerTxn({ room: roomName, cust: name, detail: hours + ' jam · billing started', amt: rate * hours, method: 'Running', by: S.activeOperator });
-  }
-  billingCloseModal();
+  await once('start-' + m.boxId, async () => {
+    const ok = await run(() => api('POST', '/operator/sessions', { boxId: m.boxId, customer: name, mode: m.mode, hours: m.hours }).then(() => true));
+    if (ok) billingCloseModal();
+  });
 }
 
 export function billingTogglePause(boxId) {
   const st = S.billingState[boxId];
   if (!st || st.mode !== 'personal') return;
-  st.paused = !st.paused;
-  sessionLog(boxId, st.paused ? 'Stopwatch paused at ' + billingFormatDuration(st.elapsedSec) : 'Stopwatch resumed at ' + billingFormatDuration(st.elapsedSec));
-  adminOverride(box_name(boxId) + ' — personal stopwatch ' + (st.paused ? 'paused' : 'resumed') + ' for ' + st.customer + ' at ' + billingFormatDuration(st.elapsedSec));
+  return run(() => api('POST', '/operator/sessions/' + boxId + '/pause'));
 }
 
 export function billingOpenStop(boxId) {
@@ -187,40 +153,21 @@ export function adminShowDeleteReason() {
   notify();
 }
 
-export function adminConfirmDelete() {
+export async function adminConfirmDelete() {
   const ed = S.ui.adminEdit;
   const reason = ed.deleteReason.trim();
   if (!reason) { alert('Please enter a reason for deletion'); return; }
-  const b = ed.booking;
-  if (!b) return;
-  const i = S.todayBookings.indexOf(b);
-  if (i > -1) S.todayBookings.splice(i, 1);
-  adminOverride(b.room + ' — booking deleted (' + reason + ')');
-  adminCloseEditModal();
+  if (!ed.booking) return;
+  const ok = await run(() => api('POST', '/operator/bookings/' + ed.booking.dbId + '/delete', { reason }).then(() => true));
+  if (ok) adminCloseEditModal();
 }
 
-export function adminSaveEdit() {
+export async function adminSaveEdit() {
   const ed = S.ui.adminEdit;
-  const b = ed.booking;
-  if (!b) return;
-  b.cust = ed.name;
-  b.time = ed.time;
-  const method = ed.method;
-  const methodNote = ed.methodNote.trim();
-  b.method = method;
-  let logMsg = b.room + ' — updated (' + b.cust + ', ' + b.time + ', ' + method + ')';
-  if (method !== ed.originalMethod) {
-    logMsg += ' — method changed: ' + (methodNote || 'no note provided');
-  }
-  adminOverride(logMsg);
-  adminCloseEditModal();
-}
-
-/* ================= SHIFT START ================= */
-export function adminStartShift() {
-  S.activeOperator = S.adminLoginOperator || 'Zeke';
-  notify();
-  showPage('admin-home');
+  if (!ed.booking) return;
+  const ok = await run(() => api('PATCH', '/operator/bookings/' + ed.booking.dbId,
+    { name: ed.name, time: ed.time, method: ed.method, methodNote: ed.methodNote }).then(() => true));
+  if (ok) adminCloseEditModal();
 }
 
 /* ================= BOOKINGS TODAY ================= */
@@ -229,18 +176,7 @@ export function bookingStart(id) {
   if (!b) return;
   if (S.billingState[b.boxId] && S.billingState[b.boxId].running) { alert(b.room + ' already has a session running.'); return; }
   if (S.roomMaintenance[b.boxId]) { alert(b.room + ' is set to maintenance — change it on the Inventory page first.'); return; }
-  const rateInfo = liveRoomById(b.boxId);
-  S.billingState[b.boxId] = {
-    running: true, customer: b.cust,
-    remainingSec: b.hours * 3600, totalSec: b.hours * 3600,
-    rate: rateInfo ? rateInfo.rate : 50000, startedAt: new Date(), method: b.method,
-    memberPhone: b.memberPhone || null
-  };
-  S.sessionCharges[b.boxId] = [];
-  const i = S.todayBookings.indexOf(b);
-  if (i > -1) S.todayBookings.splice(i, 1);
-  sessionLog(b.boxId, 'Session started from booking · ' + b.hours + ' jam · ' + b.method + ' booking' + (b.memberPhone ? ' · member ' + b.cust : ''));
-  ownerTxn({ room:b.room, cust:b.cust, detail:b.hours + ' jam · booking confirmed in progress', amt:(rateInfo ? rateInfo.rate : 50000) * b.hours, method:'Running', by:S.activeOperator });
+  return once('bk-' + id, () => run(() => api('POST', '/operator/sessions/from-booking', { bookingId: b.dbId })));
 }
 
 /* ================= MID-SESSION CHARGES ================= */
@@ -283,36 +219,16 @@ export function chargeStep(kind, i, d) {
   notify();
 }
 
-export function chargeConfirm() {
+export async function chargeConfirm() {
   const boxId = S.ui.charge.boxId;
   const draft = S.ui.charge.draft;
-  const added = [];
-  let sum = 0;
-  Object.keys(draft.snack).forEach((k) => {
-    const q = draft.snack[k];
-    if (!q) return;
-    const s = S.snackStock[k];
-    s.qty = Math.max(0, s.qty - q);
-    chargeList(boxId).push({ name:s.name, qty:q, price:s.price, kind:'snack' });
-    added.push(s.name + ' ×' + q);
-    sum += q * s.price;
+  const snacks = Object.keys(draft.snack).filter((k) => draft.snack[k]).map((k) => ({ id: S.snackStock[k].id, qty: draft.snack[k] }));
+  const addons = Object.keys(draft.addon).filter((k) => draft.addon[k]).map((k) => ({ id: S.addOns[k].id, qty: draft.addon[k] }));
+  if (!snacks.length && !addons.length) { chargeClose(); return; }
+  await once('charge-' + boxId, async () => {
+    const ok = await run(() => api('POST', '/operator/sessions/' + boxId + '/charges', { snacks, addons }).then(() => true));
+    if (ok) chargeClose();
   });
-  Object.keys(draft.addon).forEach((k) => {
-    const q = draft.addon[k];
-    if (!q) return;
-    const a = S.addOns[k];
-    a.booked = (a.booked || 0) + q;
-    chargeList(boxId).push({ name:a.name, qty:q, price:a.price, kind:'addon' });
-    added.push(a.name + ' ×' + q);
-    sum += q * a.price;
-  });
-  if (!added.length) { chargeClose(); return; }
-  const name = box_name(boxId);
-  const st = S.billingState[boxId] || {};
-  sessionLog(boxId, 'Added mid-session · ' + added.join(', ') + ' · ' + rupiah(sum));
-  ownerTxn({ room:name, cust:st.customer || 'Walk-in', detail:'mid-session · ' + added.join(', '), amt:sum, method:'On bill', by:S.activeOperator });
-  adminOverride(name + ' — ' + added.join(', ') + ' added mid-session (' + rupiah(sum) + ')');
-  chargeClose();
 }
 
 /* ================= PAYMENT AT COUNTER ================= */
@@ -387,38 +303,18 @@ export function payCancel() {
   notify();
 }
 
-export function payConfirm() {
+export async function payConfirm() {
   const payCtx = S.ui.pay;
   if (!payCtx) return;
   if (!payCtx.method) { alert('Pick cash or QRIS — how did the customer pay?'); return; }
-  const award = payCtx.memberPhone
-    ? memberAward(payCtx.memberPhone, payCtx.roomAmt, payCtx.name + ' · ' + payCtx.hours + ' jam')
-    : null;
-  const rec = {
-    id: 'RCP-' + (1041 + S.ownerReceipts.length),
-    date: HIST_DATES[0],
-    room: payCtx.name, cust: payCtx.cust, hours: payCtx.hours,
-    roomAmt: payCtx.roomAmt, charges: payCtx.charges, total: payTotal(),
-    method: payCtx.method, by: S.activeOperator,
-    at: 'Today · ' + billingFormatClock(new Date()),
-    note: payCtx.note, reason: payCtx.reason,
-    memberName: award ? award.member.name : null,
-    memberPhone: award ? award.member.phone : null,
-    pts: award ? award.earned : 0,
-    ptsBalance: award ? award.balance : null,
-    ptsDropped: award ? (award.would - award.earned) : 0
-  };
-  S.ownerReceipts.unshift(rec);
-  addonRelease(rec.charges);
-  delete S.billingState[payCtx.boxId];
-  S.sessionCharges[payCtx.boxId] = [];
-  ownerTxn({ room:rec.room, cust:rec.cust, detail:rec.hours + ' jam · paid at cashier' + (rec.reason ? ' · ' + rec.reason : ''), amt:rec.total, method:rec.method, by:S.activeOperator });
-  if (rec.reason) adminOverride(rec.room + ' — billing stopped early for ' + rec.cust + ' (' + rec.reason + ')');
-  if (award) {
-    adminOverride(rec.room + ' — ' + rec.pts + ' poin credited to ' + award.member.name + ' (member · now ' + award.balance + '/' + MEMBER_POINT_CAP + ')' + (rec.ptsDropped ? ' · ' + rec.ptsDropped + ' dropped at cap' : ''));
-  }
-  S.ui.pay = null;
-  docOpen('Payment received', { kind:'receipt', rec:rec }, 'Receipt ' + rec.id + ' sent to the owner’s transaction history.');
+  await once('pay-' + payCtx.boxId, async () => {
+    /* The server recomputes hours and amounts from its own timer */
+    const rec = await run(() => api('POST', '/operator/sessions/' + payCtx.boxId + '/checkout',
+      { method: payCtx.method, memberPhone: payCtx.memberPhone, reason: payCtx.reason }));
+    if (!rec) return;
+    S.ui.pay = null;
+    docOpen('Payment received', { kind:'receipt', rec:rec }, 'Receipt ' + rec.id + ' sent to the owner’s transaction history.');
+  });
 }
 
 /* ================= COUNTER ORDERS (snacks) ================= */
@@ -448,7 +344,7 @@ export function orderToPayment() {
   let total = 0;
   Object.keys(draft.snack).forEach((k) => {
     const q = draft.snack[k]; if (!q) return;
-    items.push({ kind:'snack', idx:+k, name:S.snackStock[k].name, qty:q, price:S.snackStock[k].price });
+    items.push({ kind:'snack', id:S.snackStock[k].id, name:S.snackStock[k].name, qty:q, price:S.snackStock[k].price });
     total += q * S.snackStock[k].price;
   });
   if (!items.length) { alert('Pick at least one snack.'); return; }
@@ -458,9 +354,10 @@ export function orderToPayment() {
 }
 
 /* --- counter payment popup (cash / QRIS) --- */
+let counterRef = 0;
 export function cpayOpen(ctx) {
   ctx.method = null;
-  ctx.ref = 'CTR-' + billingFormatClock(new Date()).replace(':', '') + '-' + S.counterSeq;
+  ctx.ref = 'CTR-' + billingFormatClock(new Date()).replace(':', '') + '-' + (++counterRef);
   ctx.opened = billingFormatClock(new Date());
   S.ui.cpay = ctx;
   notify();
@@ -477,32 +374,17 @@ export function cpaySelect(m) {
   notify();
 }
 
-export function cpayConfirm() {
+export async function cpayConfirm() {
   const c = S.ui.cpay;
   if (!c) return;
   if (!c.method) { alert('Pick cash or QRIS — how did the customer pay?'); return; }
-  c.items.forEach((i) => {
-    if (i.kind === 'snack') { S.snackStock[i.idx].qty = Math.max(0, S.snackStock[i.idx].qty - i.qty); }
-    else { S.addOns[i.idx].booked = (S.addOns[i.idx].booked || 0) + i.qty; }
+  await once('cpay', async () => {
+    const rec = await run(() => api('POST', '/operator/counter-orders',
+      { customer: c.cust, method: c.method, items: c.items.map((i) => ({ id: i.id, qty: i.qty })) }));
+    if (!rec) return;
+    S.ui.cpay = null;
+    docOpen('Payment received', { kind:'receipt', rec:rec }, 'Receipt ' + rec.id + ' sent to the owner’s transaction history.');
   });
-  const detail = c.items.map((i) => i.name + ' ×' + i.qty).join(', ');
-  const rec = {
-    id: 'RCP-' + (1041 + S.ownerReceipts.length),
-    date: HIST_DATES[0],
-    kind: 'counter',
-    room: 'Counter', cust: c.cust, hours: 0, roomAmt: 0,
-    charges: (c.items || []).map((i) => ({ kind:i.kind, name:i.name, qty:i.qty, price:i.price })),
-    message: null,
-    total: c.total, method: c.method, by: S.activeOperator,
-    at: 'Today · ' + billingFormatClock(new Date()),
-    note: 'counter order', reason: null
-  };
-  S.ownerReceipts.unshift(rec);
-  addonRelease(rec.charges);
-  S.counterSeq++;
-  ownerTxn({ room:'Counter', cust:c.cust, detail:detail, amt:c.total, method:c.method, by:S.activeOperator });
-  S.ui.cpay = null;
-  docOpen('Payment received', { kind:'receipt', rec:rec }, 'Receipt ' + rec.id + ' sent to the owner’s transaction history.');
 }
 
 /* ================= OWNER: RUNNING SESSION DETAIL =================

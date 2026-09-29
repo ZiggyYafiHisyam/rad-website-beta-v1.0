@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  useStore, operatorRequestMember, orderOpen, showPage, rupiah, signedRupiah, closeFigures, closeDiscrepancy,
+  useStore, operatorRequestMember, orderOpen, showPage, signOut, rupiah, signedRupiah, closeFigures, closeDiscrepancy,
   refundPending, todaysReceipts, BILLING_BOXES
 } from '../../store';
 import { Page } from '../../components/Phone';
@@ -19,8 +19,8 @@ export default function AdminHome() {
   const full = active >= S.LIVE_ROOMS.length;
   const disc = closeDiscrepancy();
   const pendingRefunds = refundPending().length;
-  function submitRequest() {
-    if (operatorRequestMember(reqName, reqPhone)) { setReqName(''); setReqPhone(''); }
+  async function submitRequest() {
+    if (await operatorRequestMember(reqName, reqPhone)) { setReqName(''); setReqPhone(''); }
   }
   return (
     <Page id="admin-home">
@@ -36,7 +36,7 @@ export default function AdminHome() {
               {" "}
               <span className="admin-operator-name">{S.activeOperator}</span>
               {"\u00a0on duty "}
-              <span className="btn sm ghost" style={{ marginLeft: "10px" }} onClick={() => showPage('admin-login')}>End shift</span>
+              <span className="btn sm ghost" style={{ marginLeft: "10px" }} onClick={() => signOut('admin')}>End shift</span>
             </div>
           </div>
           <div className="desktop-body">

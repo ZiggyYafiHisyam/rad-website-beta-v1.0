@@ -1,21 +1,49 @@
-import { S, notify, showPage } from './state';
+import { S, notify, goTo, ROOM_META } from './state';
 import { liveRoomById, addonFree } from './inventory';
-import { pointsFor, memberByPhone, memberHeadroom } from './members';
+import { api, once } from './api';
 
-/* The fourteen hourly slots on the TV detail page. 12.00 and 19.00 are taken. */
+/* The fourteen hourly slots on the TV detail page. Which ones are taken comes
+   from the server (S.slotsTaken[room]) — other customers, running sessions and hours already gone. */
 export const TV_SLOTS = [
   '10.00', '11.00', '12.00', '13.00', '14.00', '15.00', '16.00',
   '17.00', '18.00', '19.00', '20.00', '21.00', '22.00', '23.00'
-].map((label, idx) => ({ idx: idx, label: label, status: (idx === 2 || idx === 9) ? 'booked' : 'available' }));
+].map((label, idx) => ({ idx: idx, label: label }));
 
 export function tvIsAvailable(idx) {
-  const el = TV_SLOTS[idx];
-  return !!(el && el.status === 'available');
+  const taken = S.slotsTaken[S.custRoomId] || [];
+  return taken.indexOf(idx) === -1;
 }
 
 export function tvRangeClear(from, to) {
   for (let i = from; i <= to; i++) { if (!tvIsAvailable(i)) return false; }
   return true;
+}
+
+/* URL id -> room: /tv/3 is the third unit, /tv/billing-vip works too */
+export function roomIdFromParam(param) {
+  if (!param) return null;
+  const n = parseInt(param, 10);
+  if (String(n) === String(param) && S.LIVE_ROOMS[n - 1]) return S.LIVE_ROOMS[n - 1].id;
+  return liveRoomById(param) ? param : null;
+}
+
+/* Pick the unit the detail page is quoting and start with a clean form */
+export function selectRoom(boxId) {
+  const meta = ROOM_META[boxId] || { type: 'tv', console: 'ps5' };
+  const room = liveRoomById(boxId);
+  S.custRoomId = boxId;
+  S.tvVenue = { name: room ? room.name : boxId, type: meta.type, console: meta.console };
+  S.tvRangeStart = S.tvRangeEnd = null;
+  S.tvAddonQty = {};
+  S.tvGalleryIndex = 0;
+  notify();
+}
+
+/* Home page card -> detail page for that unit */
+export function openRoom(boxId) {
+  selectRoom(boxId);
+  const n = S.LIVE_ROOMS.findIndex((r) => r.id === boxId) + 1;
+  goTo('/tv/' + (n || 1));
 }
 
 /* Which unit the customer detail page is quoting. Rate comes from LIVE_ROOMS,
@@ -112,40 +140,55 @@ export function custSetField(key, v) {
   notify();
 }
 
-export function custMemberCheck() {
-  const m = memberByPhone(S.custForm.memberInput || '');
-  if (!m) {
+export async function custMemberCheck() {
+  try {
+    const m = await api('POST', '/public/member-lookup', { phone: S.custForm.memberInput || '' });
+    S.custMember = m;
+    S.custForm.name = m.name;
+    S.custForm.wa = m.phone;
+    S.custMemberResult = 'found';
+  } catch (e) {
+    if (e.network) { alert(e.message); return; }
     S.custMember = null;
     S.custMemberResult = 'notfound';
-    notify();
-    return;
   }
-  S.custMember = m;
-  S.custForm.name = m.name;
-  S.custForm.wa = m.phone;
-  S.custMemberResult = 'found';
   notify();
 }
 
-export function bookAndPay() {
-  const method = S.tvPaymentMethod || '';
-  const picked = [];
-  S.addOns.forEach((a, i) => { if (S.tvAddonQty[i]) picked.push(a.name + (S.tvAddonQty[i] > 1 ? ' ×' + S.tvAddonQty[i] : '')); });
-  S.receipt.addons = picked.length ? picked.join(', ') : '—';
-  if (S.custMember) {
-    const hrs = S.tvRangeStart === null ? 0 : (S.tvRangeEnd - S.tvRangeStart) + 1;
-    const wouldPts = pointsFor(tvCalcPrice(hrs));
-    const earnPts = Math.min(wouldPts, memberHeadroom(S.custMember));
-    S.receipt.member = S.custMember.name + ' · ' + (earnPts ? '+' + earnPts + ' poin (pending)' : 'poin penuh');
-  } else {
-    S.receipt.member = null;
+export async function bookAndPay() {
+  if (S.tvRangeStart === null) { alert('Pilih jam main dulu.'); return; }
+  if (!S.tvPaymentMethod) { alert('Pilih cara bayar dulu.'); return; }
+  if (!S.custMember && (!S.custForm.name.trim() || !S.custForm.wa.trim())) { alert('Isi nama dan nomor WhatsApp dulu.'); return; }
+  const addons = [];
+  S.addOns.forEach((a, i) => { if (S.tvAddonQty[i]) addons.push({ id: a.id, qty: S.tvAddonQty[i] }); });
+  await once('book', async () => {
+    let b;
+    try {
+      b = await api('POST', '/public/bookings', {
+        boxId: S.custRoomId, startIdx: S.tvRangeStart, endIdx: S.tvRangeEnd,
+        name: S.custForm.name, wa: S.custForm.wa, note: S.custForm.note,
+        method: S.tvPaymentMethod, addons, memberPhone: S.custMember ? S.custMember.phone : undefined
+      });
+    } catch (e) { alert(e.message); return; }
+    S.booking = b;
+    S.receipt.addons = b.addons;
+    S.receipt.member = b.member;
+    S.tvRangeStart = S.tvRangeEnd = null;
+    S.tvAddonQty = {};
+    notify();
+    goTo((b.method === 'QRIS' ? '/payment/qris/' : '/payment/cash/') + encodeURIComponent(b.code));
+  });
+}
+
+/* Payment pages: open by booking code, also after a reload or from a saved link */
+export async function loadBooking(code) {
+  try {
+    S.booking = await api('GET', '/public/bookings/' + encodeURIComponent(code));
+    S.receipt.addons = S.booking.addons;
+  } catch (e) {
+    S.booking = { missing: true, code };
   }
   notify();
-  if (method === 'Cash di Lokasi') {
-    showPage('customer-payment-cash');
-  } else {
-    showPage('customer-payment-qris-pending');
-  }
 }
 
 /* ================= CUSTOMER HOME FILTER ================= */

@@ -1,5 +1,6 @@
 import { S, notify, MEMBER_POINT_CAP } from './state';
-import { rupiah, billingFormatClock } from './format';
+import { rupiah } from './format';
+import { api, run, once } from './api';
 
 /* ================= MEMBER POINTS ENGINE =================
    Points come from TV / Room TIME only. Snacks & add-ons never earn. */
@@ -20,27 +21,6 @@ export function memberByPhone(phone) {
 export function memberLedger(m) { if (!m.ledger) m.ledger = []; return m.ledger; }
 export function memberHeadroom(m) { return Math.max(0, MEMBER_POINT_CAP - m.points); }
 
-/* credits room time only; stops at the cap */
-export function memberAward(phone, roomAmt, source) {
-  const m = memberByPhone(phone);
-  if (!m) return null;
-  const would = pointsFor(roomAmt);
-  const earned = Math.min(would, memberHeadroom(m));
-  m.points += earned;
-  memberLedger(m).unshift({ at:'Today · ' + billingFormatClock(new Date()), source:source, pts:earned, dropped:would - earned });
-  return { member:m, earned:earned, would:would, capped:earned < would, balance:m.points };
-}
-
-/* Pulls points back when a payment is refunded — never below zero */
-export function memberDeduct(phone, pts, source) {
-  const m = memberByPhone(phone);
-  if (!m || !pts) return null;
-  const taken = Math.min(pts, m.points);
-  m.points -= taken;
-  memberLedger(m).unshift({ at:'Today · ' + billingFormatClock(new Date()), source:source, pts:-taken, dropped:0 });
-  return { member:m, taken:taken, balance:m.points };
-}
-
 /* ---------- Owner: member list search ---------- */
 export function setMemberSearch(v) {
   S.memberSearch = v;
@@ -54,7 +34,7 @@ export function membersFiltered() {
 
 /* ---------- Owner: operator accounts editor ---------- */
 export function ownerOpenOperatorEditor() {
-  S.ui.operatorEditor = S.ownerOperators.map((o) => ({ name:o.name, pass:o.pass }));
+  S.ui.operatorEditor = S.ownerOperators.map((o) => ({ id:o.id, name:o.name, pass:o.pass }));
   notify();
 }
 export function ownerCloseOperatorEditor() {
@@ -69,11 +49,11 @@ export function ownerEditorRemoveOperator(i) {
   S.ui.operatorEditor.splice(i, 1);
   notify();
 }
-export function ownerSaveOperators() {
+export async function ownerSaveOperators() {
   const clean = S.ui.operatorEditor.filter((o) => o.name.trim());
   if (!clean.length) { alert('Keep at least one operator account.'); return; }
-  S.ownerOperators = clean.map((o) => ({ name:o.name.trim(), pass:(o.pass || '••••••') }));
-  ownerCloseOperatorEditor();
+  const ok = await run(() => api('PUT', '/owner/operators', { rows: clean.map((o) => ({ id:o.id, name:o.name.trim(), pass:o.pass })) }).then(() => true));
+  if (ok) ownerCloseOperatorEditor();
 }
 
 /* ---------- Owner: member editor ---------- */
@@ -95,7 +75,7 @@ export function ownerCloseMemberEditor() {
   notify();
 }
 
-export function ownerSaveMember() {
+export async function ownerSaveMember() {
   const ed = S.ui.memberEditor;
   const i = ownerMemberIndex(ed.phone);
   if (i < 0) return;
@@ -105,24 +85,23 @@ export function ownerSaveMember() {
   if (!name || !phone) { alert('Name and number are required'); return; }
   if (isNaN(pts) || pts < 0) { alert('Points must be a number'); return; }
   if (pts > MEMBER_POINT_CAP) { alert('Points cap at ' + MEMBER_POINT_CAP + '.'); return; }
-  S.ownerMembers[i].name = name;
-  S.ownerMembers[i].phone = phone;
-  S.ownerMembers[i].points = pts;
-  ownerCloseMemberEditor();
+  const ok = await run(() => api('PATCH', '/owner/members/' + S.ownerMembers[i].id, { name, phone, points: pts }).then(() => true));
+  if (ok) ownerCloseMemberEditor();
 }
 
-export function ownerDeleteMemberFromModal() {
+export async function ownerDeleteMemberFromModal() {
   const i = ownerMemberIndex(S.ui.memberEditor.phone);
   if (i < 0) return;
   if (!confirm('Delete member ' + S.ownerMembers[i].name + '? Only the owner can do this.')) return;
-  S.ownerMembers.splice(i, 1);
-  ownerCloseMemberEditor();
+  const ok = await run(() => api('DELETE', '/owner/members/' + S.ownerMembers[i].id).then(() => true));
+  if (ok) ownerCloseMemberEditor();
 }
 
 /* ================= MEMBERSHIP REQUESTS (operator -> owner) ================= */
-export function operatorRequestMember(name, phone) {
+export async function operatorRequestMember(name, phone) {
   if (!name.trim() || !phone.trim()) { alert('Enter the customer name and phone number'); return false; }
-  S.memberRequests.push({ name:name.trim(), phone:phone.trim(), by:S.activeOperator, at:'Today ' + billingFormatClock(new Date()) });
+  const ok = await once('member-req', () => run(() => api('POST', '/operator/member-requests', { name: name.trim(), phone: phone.trim() }).then(() => true)));
+  if (!ok) return false;
   S.opReqStatus = 'Request sent to the owner for approval — ' + name.trim() + ' is not a member until approved.';
   notify();
   return true;
@@ -130,13 +109,14 @@ export function operatorRequestMember(name, phone) {
 
 export function ownerApproveRequest(i) {
   const r = S.memberRequests[i];
-  S.memberRequests.splice(i, 1);
-  S.ownerMembers.push({ name:r.name, phone:r.phone, points:0, joined:'Today' });
-  notify();
+  if (!r) return;
+  return once('approve-' + r.id, () => run(() => api('POST', '/owner/member-requests/' + r.id + '/approve')));
 }
 
 export function ownerOpenReject(i) {
-  S.ui.reject = { index:i, reason:'' };
+  const r = S.memberRequests[i];
+  if (!r) return;
+  S.ui.reject = { id: r.id, reason:'' };
   notify();
 }
 
@@ -145,37 +125,28 @@ export function ownerCloseReject() {
   notify();
 }
 
-export function ownerConfirmReject() {
+export async function ownerConfirmReject() {
   const reason = S.ui.reject.reason.trim();
   if (!reason) { alert('Please enter a reason — the operator needs to know why.'); return; }
-  const r = S.memberRequests[S.ui.reject.index];
-  S.memberRequests.splice(S.ui.reject.index, 1);
-  ownerNotice('Membership rejected — ' + r.name, reason, r.by);
-  ownerCloseReject();
+  const ok = await run(() => api('POST', '/owner/member-requests/' + S.ui.reject.id + '/reject', { reason }).then(() => true));
+  if (ok) ownerCloseReject();
 }
 
-/* ================= INFO FROM OWNER (owner -> operator) ================= */
-export function ownerNotice(title, body, to) {
-  S.ownerNotices.unshift({ title:title, body:body, to:to || 'All operators', at:'Today · ' + billingFormatClock(new Date()), unread:true });
-  notify();
-}
-
-/* ---- customer membership page (live off ownerMembers) ---- */
+/* ---- customer membership page (asks the server; customers never receive the member list) ---- */
 export function custPointsBalance() {
-  const m = memberByPhone(S.custViewPhone);
-  return m ? m.points : 0;
+  return S.custPtsMember ? S.custPtsMember.points : 0;
 }
 
-export function custPointsCheck() {
-  const m = memberByPhone(S.custPtsPhone || '');
-  if (!m) {
+export async function custPointsCheck() {
+  try {
+    S.custPtsMember = await api('POST', '/public/member-lookup', { phone: S.custPtsPhone || '' });
+    S.custPtsMsgError = false;
+    S.custPtsMsgChecked = true;
+  } catch (e) {
+    if (e.network) { alert(e.message); return; }
+    S.custPtsMember = null;
     S.custPtsMsgError = true;
-    notify();
-    return;
   }
-  S.custViewPhone = m.phone;
-  S.custPtsMsgError = false;
-  S.custPtsMsgChecked = true;
   notify();
 }
 
@@ -204,24 +175,19 @@ export function ownerEditorRemoveReward(i) {
   notify();
 }
 
-export function ownerSaveRewards() {
+export async function ownerSaveRewards() {
   const ed = S.ui.rewardEditor;
   const rpBlock = parseInt(ed.rp, 10);
   const ptBlock = parseInt(ed.pts, 10);
   if (isNaN(rpBlock) || rpBlock < 1000) { alert('Rp per block must be at least 1.000'); return; }
   if (isNaN(ptBlock) || ptBlock < 1) { alert('Points per block must be at least 1'); return; }
-  S.POINT_BLOCK_RP = rpBlock;
-  S.POINT_BLOCK_PTS = ptBlock;
-  const out = [];
   for (let i = 0; i < ed.rows.length; i++) {
     const rw = ed.rows[i];
     if (!String(rw.name).trim()) continue;
     const cost = parseInt(String(rw.cost).replace(/[^0-9]/g, ''), 10);
     if (isNaN(cost)) { alert('Enter a point cost for "' + rw.name + '"'); return; }
     if (cost > MEMBER_POINT_CAP) { alert('"' + rw.name + '" costs more than the ' + MEMBER_POINT_CAP + '-point cap.'); return; }
-    out.push({ name:String(rw.name).trim(), cost:cost });
   }
-  out.sort((a, b) => a.cost - b.cost);
-  S.rewardCatalog = out;
-  ownerCloseRewardEditor();
+  const ok = await run(() => api('PUT', '/owner/rewards', { rp: rpBlock, pts: ptBlock, rows: ed.rows }).then(() => true));
+  if (ok) ownerCloseRewardEditor();
 }

@@ -1,4 +1,6 @@
 export * from './state';
+export * from './api';
+export * from './auth';
 export * from './format';
 export * from './members';
 export * from './inventory';

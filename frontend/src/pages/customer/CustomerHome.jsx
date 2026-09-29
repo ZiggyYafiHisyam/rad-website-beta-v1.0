@@ -1,4 +1,4 @@
-import { useStore, custFilter, showPage, rupiah, custRateFor } from '../../store';
+import { useStore, custFilter, openRoom, rupiah, custRateFor } from '../../store';
 import { Page, Phone, CustomerTabs } from '../../components/Phone';
 import { IMG } from '../../assets/images';
 
@@ -126,7 +126,7 @@ export default function CustomerHome() {
             <span className="chip cust-filter" data-f="room" onClick={() => custFilter('room')} style={chipStyle('room')}>Room 3</span>
           </div>
           <div id="cust-room-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
-            <div className="room-card" data-kind="tv" data-status="booked" onClick={() => showPage('customer-table')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "booked") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
+            <div className="room-card" data-kind="tv" data-status="booked" onClick={() => openRoom('billing-tv1')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "booked") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
               <span className="pill booked" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Booked</span>
               <div style={{ position: "relative", zIndex: "1" }}>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "16px", lineHeight: "1.1", color: "#FFFFFF", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>TV 1</div>
@@ -140,7 +140,7 @@ export default function CustomerHome() {
                 </div>
               </div>
             </div>
-            <div className="room-card" data-kind="tv" data-status="available" onClick={() => showPage('customer-table')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
+            <div className="room-card" data-kind="tv" data-status="available" onClick={() => openRoom('billing-tv2')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
               <span className="pill available" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Available</span>
               <div style={{ position: "relative", zIndex: "1" }}>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "16px", lineHeight: "1.1", color: "#FFFFFF", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>TV 2</div>
@@ -154,7 +154,7 @@ export default function CustomerHome() {
                 <span className="btn sm primary" style={{ display: "block", width: "100%", marginTop: "6px", padding: "5px 0", fontSize: "10.5px", textAlign: "center" }}>Booking</span>
               </div>
             </div>
-            <div className="room-card" data-kind="tv" data-status="inuse" onClick={() => showPage('customer-table')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "inuse") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
+            <div className="room-card" data-kind="tv" data-status="inuse" onClick={() => openRoom('billing-tv3')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "inuse") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
               <span className="pill inuse" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>In use</span>
               <div style={{ position: "relative", zIndex: "1" }}>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "16px", lineHeight: "1.1", color: "#FFFFFF", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>TV 3</div>
@@ -168,7 +168,7 @@ export default function CustomerHome() {
                 </div>
               </div>
             </div>
-            <div className="room-card" data-kind="tv" data-status="booked" onClick={() => showPage('customer-table')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "booked") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
+            <div className="room-card" data-kind="tv" data-status="booked" onClick={() => openRoom('billing-tv4')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "booked") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
               <span className="pill booked" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Booked</span>
               <div style={{ position: "relative", zIndex: "1" }}>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "16px", lineHeight: "1.1", color: "#FFFFFF", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>TV 4</div>
@@ -182,7 +182,7 @@ export default function CustomerHome() {
                 </div>
               </div>
             </div>
-            <div className="room-card" data-kind="tv" data-status="available" onClick={() => showPage('customer-table')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
+            <div className="room-card" data-kind="tv" data-status="available" onClick={() => openRoom('billing-tv5')} style={{ minHeight: "140px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["tv.png"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("tv", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
               <span className="pill available" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Available</span>
               <div style={{ position: "relative", zIndex: "1" }}>
                 <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "16px", lineHeight: "1.1", color: "#FFFFFF", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>TV 5</div>
@@ -196,7 +196,7 @@ export default function CustomerHome() {
                 <span className="btn sm primary" style={{ display: "block", width: "100%", marginTop: "6px", padding: "5px 0", fontSize: "10.5px", textAlign: "center" }}>Booking</span>
               </div>
             </div>
-            <div className="room-card" data-kind="room" data-status="available" onClick={() => showPage('customer-table')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["private-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
+            <div className="room-card" data-kind="room" data-status="available" onClick={() => openRoom('billing-private')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["private-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
               <span className="pill available" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Available</span>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "10px", position: "relative", zIndex: "1" }}>
                 <div style={{ minWidth: "0" }}>
@@ -212,7 +212,7 @@ export default function CustomerHome() {
                 <span className="btn sm primary" style={{ flexShrink: "0", padding: "5px 11px", fontSize: "10.5px" }}>Booking</span>
               </div>
             </div>
-            <div className="room-card" data-kind="room" data-status="inuse" onClick={() => showPage('customer-table')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["vip-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "inuse") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
+            <div className="room-card" data-kind="room" data-status="inuse" onClick={() => openRoom('billing-vip')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["vip-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "inuse") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", opacity: "0.8" }}>
               <span className="pill inuse" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>In use</span>
               {" "}
               <span style={{ position: "absolute", top: "12px", right: "10px", fontSize: "9px", color: "rgba(237,241,250,0.8)", textShadow: "0 1px 5px rgba(0,0,0,0.85)" }}>Sedang dipakai</span>
@@ -229,7 +229,7 @@ export default function CustomerHome() {
                 </div>
               </div>
             </div>
-            <div className="room-card" data-kind="room" data-status="available" onClick={() => showPage('customer-table')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["lounge-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
+            <div className="room-card" data-kind="room" data-status="available" onClick={() => openRoom('billing-lounge')} style={{ gridColumn: "span 2", minHeight: "152px", position: "relative", padding: "12px", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)", backgroundImage: `linear-gradient(175deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.32) 45%, rgba(0,0,0,0.9) 100%), url('${IMG["lounge-room.jpg"]}')`, backgroundSize: "cover", backgroundPosition: "center", display: cardShown("room", "available") ? "flex" : "none", flexDirection: "column", justifyContent: "flex-end", cursor: "pointer", borderColor: "rgba(47,143,255,0.5)" }}>
               <span className="pill available" style={{ position: "absolute", top: "10px", left: "10px", fontSize: "9px", padding: "3px 7px" }}>Available</span>
               <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "10px", position: "relative", zIndex: "1" }}>
                 <div style={{ minWidth: "0" }}>

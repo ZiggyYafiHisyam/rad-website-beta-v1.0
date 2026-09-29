@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
-  useStore, bookAndPay, custIdMode, custMemberCheck, showPage, rupiah, TV_SLOTS, selectSlot, selectMethod,
+  useStore, bookAndPay, custIdMode, custMemberCheck, showPage, rupiah, TV_SLOTS, tvIsAvailable, selectSlot, selectMethod,
+  roomIdFromParam, selectRoom, custRateFor, liveRoomById, ROOM_META,
   tvGalleryShow, custSetField, tvCalcPrice, tvAddonTotal, tvAddonCount, tvActiveConsole, tvAddonFits, tvSetAddon,
   addonFree, pointsFor, memberHeadroom, MEMBER_POINT_CAP
 } from '../../store';
@@ -77,8 +80,25 @@ function TvPoints({ roomAmt }) {
     : <span style={{ color: "var(--amber)" }}>Poin kamu penuh ({MEMBER_POINT_CAP}) — tukar dulu di counter.</span>;
 }
 
+/* Price line: 1 jam / 2 jam / 3 jam for the room being booked, same discount rule as tvCalcPrice */
+function priceLine(rate) {
+  const p = (h) => rate * h - Math.min(h - 1, 2) * 5000;
+  return [1, 2, 3].map((h) => ({ h: h, k: Math.round(p(h) / 1000) + 'k' }));
+}
+
 export default function CustomerTable() {
   const S = useStore();
+  const { id } = useParams();
+  /* /tv/3 opens the third unit — also on a refresh or a shared link */
+  useEffect(() => {
+    const want = roomIdFromParam(id);
+    if (want && want !== S.custRoomId) selectRoom(want);
+  }, [id, S.LIVE_ROOMS.length]);
+  const room = liveRoomById(S.custRoomId);
+  const meta = ROOM_META[S.custRoomId] || { type: 'tv' };
+  const amen = room ? (room.amen || '') : '';
+  const amenParts = amen.split(' · ');
+  const chips = (amenParts[1] || '').split(', ').filter(Boolean);
   const locked = !!S.custMember;
   const activeConsole = tvActiveConsole();
   const addonSum = tvAddonTotal();
@@ -126,25 +146,19 @@ export default function CustomerTable() {
           <div style={{ marginBottom: "6px" }}>
             <div className="row" style={{ alignItems: "flex-start" }}>
               <div>
-                <div className="h-title" style={{ fontSize: "19px" }}>Lounge Room</div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "3px" }}>Sampai 10 orang · PS 4 · Ruangan tertutup</div>
+                <div className="h-title" style={{ fontSize: "19px" }}>{room ? room.name : ''}</div>
+                <div style={{ fontSize: "11.5px", color: "var(--text-dim)", marginTop: "3px" }}>{amenParts[0]}{meta.type === 'room' ? ' · Ruangan tertutup' : ''}</div>
               </div>
-              <span className="pill available">Available</span>
+              <span className={'pill ' + (S.roomMaintenance[S.custRoomId] ? 'off' : 'available')}>{S.roomMaintenance[S.custRoomId] ? 'Maintenance' : 'Available'}</span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginTop: "10px" }}>
-              <span className="chip" style={{ margin: "0" }}>Netflix</span>
-              <span className="chip" style={{ margin: "0" }}>Board Game</span>
-              <span className="chip" style={{ margin: "0" }}>Meeting Table</span>
-              <span className="chip" style={{ margin: "0" }}>AC</span>
+              {chips.map((c) => <span key={c} className="chip" style={{ margin: "0" }}>{c}</span>)}
             </div>
           </div>
           <div style={{ fontSize: "13px", color: "var(--text-dim)", margin: "13px 0 2px", letterSpacing: "0.2px" }}>
-            {"1 Jam — "}
-            <strong style={{ color: "var(--text)", fontFamily: "'Rajdhani',sans-serif", fontSize: "15px" }}>50k</strong>
-            {" \u00a0·\u00a0 2 Jam — "}
-            <strong style={{ color: "var(--text)", fontFamily: "'Rajdhani',sans-serif", fontSize: "15px" }}>95k</strong>
-            {" \u00a0·\u00a0 3 Jam — "}
-            <strong style={{ color: "var(--text)", fontFamily: "'Rajdhani',sans-serif", fontSize: "15px" }}>140k</strong>
+            {priceLine(custRateFor(S.custRoomId)).map((x, n) => (
+              <span key={x.h}>{n ? "  ·  " : ""}{x.h + " Jam — "}<strong style={{ color: "var(--text)", fontFamily: "'Rajdhani',sans-serif", fontSize: "15px" }}>{x.k}</strong></span>
+            ))}
           </div>
           <div className="step-head">
             <span className="step-num">1</span>
@@ -154,9 +168,10 @@ export default function CustomerTable() {
           <div id="tv-slot-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "7px", marginBottom: "9px" }}>
             {TV_SLOTS.map((sl) => {
               const inRange = S.tvRangeStart !== null && sl.idx >= S.tvRangeStart && sl.idx <= S.tvRangeEnd;
+              const status = tvIsAvailable(sl.idx) ? 'available' : 'booked';
               return (
-                <div key={sl.idx} className={'pill ' + sl.status + ' slot-btn' + (inRange ? ' selected' : '')} data-idx={sl.idx}
-                  onClick={sl.status === 'available' ? () => selectSlot(sl.idx) : undefined}>{sl.label}</div>
+                <div key={sl.idx} className={'pill ' + status + ' slot-btn' + (inRange ? ' selected' : '')} data-idx={sl.idx}
+                  onClick={status === 'available' ? () => selectSlot(sl.idx) : undefined}>{sl.label}</div>
               );
             })}
           </div>

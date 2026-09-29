@@ -1,9 +1,12 @@
-import { useStore, adminStartShift, notify } from '../../store';
+import { useState } from 'react';
+import { useStore, adminSignIn, notify } from '../../store';
 import { Page } from '../../components/Phone';
 import OperatorLayout from '../../components/OperatorNav';
 
 export default function AdminLogin() {
   const S = useStore();
+  const [password, setPassword] = useState('');
+  const names = S.operatorNames;
   return (
     <Page id="admin-login">
       <OperatorLayout active="admin-login">
@@ -14,14 +17,12 @@ export default function AdminLogin() {
               <div style={{ fontSize: "11.5px", color: "var(--text-faint)", marginTop: "4px" }}>Admin console</div>
             </div>
             <label>Operator</label>
-            <select id="admin-login-operator" value={S.adminLoginOperator} onChange={(e) => { S.adminLoginOperator = e.target.value; notify(); }}>
-              <option>Qori</option>
-              <option>Zeke</option>
-              <option>Mutya</option>
+            <select id="admin-login-operator" value={S.adminLoginOperator || names[0] || ''} onChange={(e) => { S.adminLoginOperator = e.target.value; notify(); }}>
+              {names.map((n) => <option key={n}>{n}</option>)}
             </select>
             <label>Password</label>
-            <input type="password" />
-            <div className="btn primary" style={{ marginTop: "18px" }} onClick={adminStartShift}>Start shift</div>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') adminSignIn(password); }} />
+            <div className="btn primary" style={{ marginTop: "18px" }} onClick={() => adminSignIn(password)}>Start shift</div>
             <div style={{ fontSize: "10.5px", color: "var(--text-faint)", marginTop: "10px", textAlign: "center" }}>You'll be shown as the active operator on the customer page</div>
           </div>
         </div>

@@ -1,8 +1,7 @@
 import { S, notify, HIST_DATES } from './state';
-import { rupiah, billingFormatClock } from './format';
-import { memberDeduct, ownerNotice } from './members';
-import { adminOverride, ownerTxn } from './audit';
+import { rupiah } from './format';
 import { docOpen } from './docs';
+import { api, run, once } from './api';
 
 /* ================= REFUNDS (operator requests -> owner confirms) =================
    Nothing leaves the drawer on the operator's word alone. A request sits in
@@ -56,7 +55,7 @@ export function refundClose() {
   notify();
 }
 
-export function refundSubmit() {
+export async function refundSubmit() {
   const ctx = S.ui.refund;
   if (!ctx) return;
   const refundCtx = ctx.rec;
@@ -65,28 +64,12 @@ export function refundSubmit() {
   if (isNaN(amt) || amt <= 0) { alert('Enter how much is being refunded.'); return; }
   if (amt > refundCtx.total) { alert('A refund cannot be larger than the ' + rupiah(refundCtx.total) + ' that was paid.'); return; }
   if (!reason) { alert('Enter a reason — the owner needs it to decide.'); return; }
-  S.refundSeq++;
-  const r = {
-    id: 'RFD-' + (301 + S.refundSeq),
-    recId: refundCtx.id,
-    date: HIST_DATES[0],
-    room: refundCtx.room, cust: refundCtx.cust,
-    paid: refundCtx.total, amount: amt,
-    partial: amt < refundCtx.total,
-    method: refundCtx.method,
-    pts: refundCtx.pts || 0,
-    memberPhone: refundCtx.memberPhone || null,
-    memberName: refundCtx.memberName || null,
-    reason: reason,
-    by: S.activeOperator,
-    at: 'Today · ' + billingFormatClock(new Date()),
-    status: 'pending',
-    ownerNote: ''
-  };
-  S.refunds.unshift(r);
-  adminOverride(r.room + ' — refund requested for ' + r.cust + ' (' + rupiah(r.amount) + (r.partial ? ' partial' : ' full') + ') · ' + reason);
-  S.ui.refund = null;
-  docOpen('Refund request sent', { kind:'refund', r:r }, 'Nothing has left the drawer yet — the owner has to approve it first.');
+  await once('refund-' + refundCtx.id, async () => {
+    const id = await run(() => api('POST', '/operator/refunds', { recId: refundCtx.id, amount: amt, reason }));
+    if (!id) return;
+    S.ui.refund = null;
+    docOpen('Refund request sent', { kind:'refund', r:refundById(id) }, 'Nothing has left the drawer yet — the owner has to approve it first.');
+  });
 }
 
 /* ---------- Owner: decide ---------- */
@@ -101,23 +84,18 @@ export function refundDecideClose() {
   notify();
 }
 
-export function refundApprove() {
-  const r = refundById(S.ui.refundDecide.id);
-  if (!r) return;
-  r.status = 'approved';
-  r.settledAt = 'Today · ' + billingFormatClock(new Date());
-  /* Points earned on the original payment come back off the member's card */
-  if (r.memberPhone && r.pts) memberDeduct(r.memberPhone, r.pts, 'Refund · ' + r.room);
-  ownerNotice('Refund approved — ' + r.room,
-    rupiah(r.amount) + ' back to ' + r.cust + ' via ' + r.method + '. Hand it over and note it on the shift closing.', r.by);
-  adminOverride(r.room + ' — refund approved by owner for ' + r.cust + ' (' + rupiah(r.amount) + ') · ' + r.reason);
-  ownerTxn({ room:r.room, cust:r.cust, detail:'refund approved · ' + r.reason, amt:-r.amount, method:r.method, by:'Owner' });
-  S.ui.refundDecide = null;
-  docOpen('Refund approved', { kind:'refund', r:r }, 'Revenue, the cash drawer and the statistics have all been adjusted.');
+export async function refundApprove() {
+  const id = S.ui.refundDecide.id;
+  await once('refund-decide-' + id, async () => {
+    const ok = await run(() => api('POST', '/owner/refunds/' + id + '/approve').then(() => true));
+    if (!ok) return;
+    S.ui.refundDecide = null;
+    docOpen('Refund approved', { kind:'refund', r:refundById(id) }, 'Revenue, the cash drawer and the statistics have all been adjusted.');
+  });
 }
 
 /* First press shows the reason box, the second one rejects */
-export function refundRejectStep() {
+export async function refundRejectStep() {
   const d = S.ui.refundDecide;
   if (!d.showReject) {
     d.showReject = true;
@@ -126,12 +104,8 @@ export function refundRejectStep() {
   }
   const note = d.note.trim();
   if (!note) { alert('Enter a reason — the operator needs to know why.'); return; }
-  const r = refundById(d.id);
-  if (!r) return;
-  r.status = 'rejected';
-  r.ownerNote = note;
-  r.settledAt = 'Today · ' + billingFormatClock(new Date());
-  ownerNotice('Refund rejected — ' + r.room, note + ' (' + rupiah(r.amount) + ' for ' + r.cust + ')', r.by);
-  adminOverride(r.room + ' — refund rejected by owner for ' + r.cust + ' · ' + note);
-  refundDecideClose();
+  await once('refund-decide-' + d.id, async () => {
+    const ok = await run(() => api('POST', '/owner/refunds/' + d.id + '/reject', { note }).then(() => true));
+    if (ok) refundDecideClose();
+  });
 }

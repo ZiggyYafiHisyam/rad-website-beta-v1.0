@@ -322,7 +322,7 @@ function AdminEditModal() {
 function AuditModal() {
   const S = useStore();
   if (S.ui.audit === null) return null;
-  const e = S.auditLog[S.ui.audit];
+  const e = S.auditLog.find((x) => x.id === S.ui.audit);
   if (!e) return null;
   return (
     <div id="audit-modal" style={overlay('0.65', "70", "20px")}>
@@ -455,7 +455,7 @@ function RejectModal() {
   const S = useStore();
   const rj = S.ui.reject;
   if (!rj) return null;
-  const r = S.memberRequests[rj.index];
+  const r = S.memberRequests.find((x) => x.id === rj.id);
   return (
     <div id="reject-modal" style={overlay('0.65', "70", "20px")}>
       <div style={{ width: "380px", background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "14px", padding: "20px" }}>

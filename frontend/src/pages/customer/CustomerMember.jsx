@@ -1,11 +1,11 @@
-import { useStore, custPointsCheck, memberByPhone, memberHeadroom, memberLedger, custPointsBalance, pointRateLabel, MEMBER_POINT_CAP, notify } from '../../store';
+import { useStore, custPointsCheck, memberHeadroom, custPointsBalance, pointRateLabel, MEMBER_POINT_CAP, notify } from '../../store';
 import { Page, Phone, CustomerTabs } from '../../components/Phone';
 
 export default function CustomerMember() {
   const S = useStore();
-  const m = memberByPhone(S.custViewPhone);
+  const m = S.custPtsMember;
   const pts = m ? m.points : 0;
-  const log = m ? memberLedger(m) : [];
+  const log = m ? m.ledger : [];
   const balance = custPointsBalance();
   return (
     <Page id="customer-member">

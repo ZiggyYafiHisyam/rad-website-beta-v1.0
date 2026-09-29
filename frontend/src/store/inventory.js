@@ -1,8 +1,6 @@
 import { S, notify, ADDON_SCOPES } from './state';
-import { rupiah } from './format';
-import { ownerNotice } from './members';
-import { adminOverride } from './audit';
 import { docOpen } from './docs';
+import { api, run } from './api';
 
 export function liveRoomById(id) {
   for (let i = 0; i < S.LIVE_ROOMS.length; i++) { if (S.LIVE_ROOMS[i].id === id) return S.LIVE_ROOMS[i]; }
@@ -40,26 +38,12 @@ export function bookingForRoom(boxId) {
 
 /* ================= ROOM META / INVENTORY STATE ================= */
 export function invSetState(id, v) {
-  S.roomMaintenance[id] = (v === 'maintenance');
-  notify();
-}
-
-/* Add-ons are rentable gear: booked units come back to stock once the bill is paid */
-export function addonRelease(charges) {
-  (charges || []).forEach((c) => {
-    if (c.kind !== 'addon') return;
-    for (let i = 0; i < S.addOns.length; i++) {
-      if (S.addOns[i].name === c.name) {
-        S.addOns[i].booked = Math.max(0, (S.addOns[i].booked || 0) - c.qty);
-        break;
-      }
-    }
-  });
+  return run(() => api('PUT', '/operator/rooms/' + id + '/maintenance', { maintenance: v === 'maintenance' }));
 }
 
 /* ================= OWNER-ONLY ADD-ON CONTROL ================= */
 export function ownerOpenAddonEditor() {
-  S.ui.addonEditor = S.addOns.map((a) => ({ name:a.name, price:a.price, scope:a.scope || 'all', units:a.units || 0, booked:a.booked || 0, upgradesTo:a.upgradesTo }));
+  S.ui.addonEditor = S.addOns.map((a) => ({ id:a.id, name:a.name, price:a.price, scope:a.scope || 'all', units:a.units || 0, booked:a.booked || 0, upgradesTo:a.upgradesTo }));
   notify();
 }
 export function ownerCloseAddonEditor() {
@@ -74,25 +58,14 @@ export function ownerEditorRemoveAddon(i) {
   S.ui.addonEditor.splice(i, 1);
   notify();
 }
-export function ownerSaveAddons() {
-  const out = [];
-  const draft = S.ui.addonEditor;
-  for (let i = 0; i < draft.length; i++) {
-    const a = draft[i];
-    if (!String(a.name).trim()) continue;
-    let price = parseInt(String(a.price).replace(/[^0-9]/g, ''), 10);
-    if (isNaN(price)) price = 0;
-    let units = parseInt(String(a.units).replace(/[^0-9]/g, ''), 10);
-    if (isNaN(units)) units = 0;
-    out.push({ name:String(a.name).trim(), price:price, scope:a.scope || 'all', units:units, booked:Math.min(a.booked || 0, units), upgradesTo:a.upgradesTo });
-  }
-  S.addOns = out;
-  ownerCloseAddonEditor();
+export async function ownerSaveAddons() {
+  const ok = await run(() => api('PUT', '/owner/addons', { rows: S.ui.addonEditor }).then(() => true));
+  if (ok) ownerCloseAddonEditor();
 }
 
 /* ================= OWNER-ONLY SNACK CONTROL ================= */
 export function ownerOpenSnackEditor() {
-  S.ui.snackEditor = S.snackStock.map((s) => ({ name:s.name, qty:s.qty, cost:(s.cost || 0), price:s.price, low:s.low, code:s.code }));
+  S.ui.snackEditor = S.snackStock.map((s) => ({ id:s.id, name:s.name, qty:s.qty, cost:(s.cost || 0), price:s.price, low:s.low, code:s.code }));
   notify();
 }
 export function ownerCloseSnackEditor() {
@@ -107,22 +80,17 @@ export function ownerEditorRemoveSnack(i) {
   S.ui.snackEditor.splice(i, 1);
   notify();
 }
-export function ownerSaveSnacks() {
-  const out = [];
+export async function ownerSaveSnacks() {
   const draft = S.ui.snackEditor;
   for (let i = 0; i < draft.length; i++) {
     const s = draft[i];
     if (!String(s.name).trim()) continue;
     const qty = parseInt(String(s.qty).replace(/[^0-9]/g, ''), 10);
     const price = parseInt(String(s.price).replace(/[^0-9]/g, ''), 10);
-    let cost = parseInt(String(s.cost).replace(/[^0-9]/g, ''), 10);
-    if (isNaN(cost)) cost = 0;
     if (isNaN(qty) || isNaN(price)) { alert('Enter qty and selling price for "' + s.name + '"'); return; }
-    out.push({ name:String(s.name).trim(), qty:qty, cost:cost, price:price, low:s.low || 5,
-               code:s.code || ('B-' + (out.length + 1)) });
   }
-  S.snackStock = out;
-  ownerCloseSnackEditor();
+  const ok = await run(() => api('PUT', '/owner/snacks', { rows: draft }).then(() => true));
+  if (ok) ownerCloseSnackEditor();
 }
 
 /* ================= OWNER-ONLY TV / ROOM RATE CONTROL ================= */
@@ -142,25 +110,16 @@ export function ownerCloseRateEditor() {
   notify();
 }
 
-export function ownerSaveRates() {
-  const changes = [];
+export async function ownerSaveRates() {
   const rateDraft = S.ui.rateEditor.rows;
   for (let i = 0; i < rateDraft.length; i++) {
     const d = rateDraft[i];
     const wd = parseInt(String(d.rate).replace(/[^0-9]/g, ''), 10);
     const we = parseInt(String(d.weekend).replace(/[^0-9]/g, ''), 10);
     if (isNaN(wd) || wd <= 0 || isNaN(we) || we <= 0) { alert('Enter a weekday and weekend rate for ' + d.name + '.'); return; }
-    const live = S.LIVE_ROOMS[i];
-    if (live.rate !== wd) changes.push(d.name + ': ' + rupiah(live.rate) + ' → ' + rupiah(wd) + ' / jam');
-    if ((live.weekend || live.rate) !== we) changes.push(d.name + ' weekend: ' + rupiah(live.weekend || live.rate) + ' → ' + rupiah(we) + ' / jam');
-    live.rate = wd;
-    live.weekend = we;
   }
+  const changes = await run(() => api('PUT', '/owner/rates', { rows: rateDraft }));
+  if (!changes) return;
   ownerCloseRateEditor();
-  if (changes.length) {
-    ownerNotice('Price update — ' + (changes.length === 1 ? changes[0].split(':')[0] : changes.length + ' units'),
-      changes.join(' · ') + '. Quote the new rate at the counter.', 'All operators');
-    adminOverride('Pricing — owner updated ' + changes.length + ' rate' + (changes.length > 1 ? 's' : '') + ' · ' + changes.join(' · '));
-    docOpen('Rates updated', { kind:'rates', changes:changes }, 'Running sessions keep the rate they started on.');
-  }
+  if (changes.length) docOpen('Rates updated', { kind:'rates', changes:changes }, 'Running sessions keep the rate they started on.');
 }

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { setNavigator, startClock } from './store';
+import { setNavigator, startClock, useStore, refresh, startPolling, accessFor, hasAccess, PAGE_URLS } from './store';
 import Modals from './components/Modals';
 import { resolveRedirect } from './routes';
 import { applyViewport } from './viewport';
@@ -33,18 +33,31 @@ function Fallback() {
 }
 
 export default function App() {
+  const S = useStore();
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
+  const need = accessFor(pathname);
+  const allowed = hasAccess(need);
 
   useEffect(() => { setNavigator(navigate); }, [navigate]);
   useEffect(() => { startClock(); }, []);
+  /* Load the first snapshot, then keep every screen in step with the server */
+  useEffect(() => { refresh(); startPolling(); }, []);
+  /* Operator and owner pages need a signed-in session of the right role */
+  useEffect(() => {
+    if (S.ready && !allowed) navigate(PAGE_URLS[need === 'owner' ? 'owner-login' : 'admin-login'], { replace: true });
+  }, [S.ready, allowed, need]);
   /* Phones: desktop layout for operator pages / owner console, app layout elsewhere */
   useLayoutEffect(() => { applyViewport(pathname); }, [pathname]);
   /* Every page opens scrolled to the top */
   useEffect(() => { window.scrollTo(0, 0); }, [pathname, search]);
 
+  if (!S.ready) return <div className="stage"><div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-faint)", fontSize: "13px" }}>Loading…</div></div>;
+  if (!allowed) return null;
+
   return (
     <div className="stage">
+      {S.serverDown ? <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: "var(--red)", color: "#fff", textAlign: "center", fontSize: "12px", padding: "6px" }}>Can’t reach the server — retrying…</div> : null}
       <Routes>
         <Route path="/" element={<CustomerHome />} />
         <Route path="/tv" element={<CustomerTable />} />

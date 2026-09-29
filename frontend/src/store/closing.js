@@ -1,7 +1,8 @@
-import { S, notify, HIST_DATES, CLOSE_SEED } from './state';
-import { billingFormatClock } from './format';
+import { S, notify, HIST_DATES } from './state';
 import { refundApprovedTotal } from './refunds';
 import { docOpen } from './docs';
+import { billingFormatClock } from './format';
+import { api, run, once } from './api';
 
 /* ================= SHIFT CLOSING ================= */
 export function closeParse(v) {
@@ -12,9 +13,9 @@ export function closeParse(v) {
 }
 
 export function closeFigures() {
-  let cash = CLOSE_SEED.cash, qris = CLOSE_SEED.qris;
+  let cash = S.closeSeed.cash, qris = S.closeSeed.qris;
   (S.ownerReceipts || []).forEach((r) => {
-    if ((r.date || '16 Sep 2026') !== '16 Sep 2026') return;
+    if ((r.date || HIST_DATES[0]) !== HIST_DATES[0]) return;
     if (r.method === 'Cash') cash += r.total; else qris += r.total;
   });
   /* Approved refunds have physically left the drawer, so the operator's count
@@ -49,24 +50,25 @@ export function closeSetCash(v) { S.closeCashActual = v; notify(); }
 export function closeSetQris(v) { S.closeQrisActual = v; notify(); }
 export function closeSnackSet(i, v) { S.closeSnackCount[i] = v; notify(); }
 
-export function closeShift() {
-  const f = closeFigures();
+export async function closeShift() {
   const cashAct = closeParse(S.closeCashActual);
   const qrisAct = closeParse(S.closeQrisActual);
   if (cashAct === null || qrisAct === null) { alert('Enter the cash you counted and the QRIS total on the GoPay merchant app.'); return; }
-  const sf = closeSnackFigures();
-  const shift = {
-    id: 'SHIFT-' + (201 + S.ownerShifts.length),
-    date: HIST_DATES[0],
-    by: S.activeOperator,
-    at: '16 Sep 2026 · ' + billingFormatClock(new Date()),
-    cashExpected: f.cash, cashActual: cashAct,
-    qrisExpected: f.qris, qrisActual: qrisAct,
-    disc: (cashAct - f.cash) + (qrisAct - f.qris),
-    total: f.total,
-    refunds: f.refunds,
-    snackGaps: sf.gaps, snackGapValue: sf.value
-  };
-  S.ownerShifts.unshift(shift);
-  docOpen('Shift summary — ' + shift.by, { kind:'shift', s:shift }, 'Photograph this screen for your own record. A copy is already in the owner’s transaction history.');
+  /* Snack counts are keyed by row on screen; the server wants snack ids */
+  const snackCounts = {};
+  S.snackStock.forEach((sn, i) => { if (closeParse(S.closeSnackCount[i]) !== null) snackCounts[sn.id] = closeParse(S.closeSnackCount[i]); });
+  await once('close-shift', async () => {
+    const seq = await run(() => api('POST', '/operator/shift/close', { cashActual: cashAct, qrisActual: qrisAct, snackCounts }));
+    if (!seq) return;
+    /* Owner sees the saved shift in their snapshot; operators get the summary built from the same figures */
+    const f = closeFigures();
+    const sf = closeSnackFigures();
+    const shift = {
+      id: 'SHIFT-' + seq, date: HIST_DATES[0], by: S.activeOperator, at: HIST_DATES[0] + ' · ' + billingFormatClock(new Date()),
+      cashExpected: f.cash, cashActual: cashAct, qrisExpected: f.qris, qrisActual: qrisAct,
+      disc: (cashAct - f.cash) + (qrisAct - f.qris), total: f.total, refunds: f.refunds,
+      snackGaps: sf.gaps, snackGapValue: sf.value
+    };
+    docOpen('Shift summary — ' + shift.by, { kind:'shift', s:shift }, 'Photograph this screen for your own record. A copy is already in the owner’s transaction history.');
+  });
 }

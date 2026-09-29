@@ -26,8 +26,13 @@ function urlRouter() {
   };
 }
 
+/* The API lives in ../backend (npm run dev there, port 3001) — same-origin for the browser */
+const API_TARGET = process.env.VITE_API_TARGET || 'http://localhost:3001';
+
 export default defineConfig({
   plugins: [react(), urlRouter()],
+  server: { proxy: { '/api': { target: API_TARGET, changeOrigin: true } } },
+  preview: { proxy: { '/api': { target: API_TARGET, changeOrigin: true } } },
   /* Compile down so older phone browsers (e.g. an old Android Chrome) can run it */
   build: { target: ['es2018', 'chrome70', 'safari12', 'firefox68'] },
 });

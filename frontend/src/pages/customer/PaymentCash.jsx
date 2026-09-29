@@ -1,8 +1,8 @@
-import { useStore } from '../../store';
+import { BookingRows, useBooking, money } from '../../components/BookingRows';
 import { Page, Phone } from '../../components/Phone';
 
 export default function PaymentCash() {
-  const S = useStore();
+  const b = useBooking();
   return (
     <Page id="customer-payment-cash">
       <Phone>
@@ -16,44 +16,9 @@ export default function PaymentCash() {
             {"Valid until 16.05 "}
             <span style={{ color: "var(--text-faint)" }}>(&gt;5 mins Booking will expire)</span>
           </div>
-          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "30px", marginBottom: "20px" }}>Rp 140.000</div>
+          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "30px", marginBottom: "20px" }}>{money(b)}</div>
           <div className="section-label" style={{ textAlign: "left" }}>Booking details</div>
-          <table className="receipt" style={{ textAlign: "left" }}>
-            <tbody>
-              <tr>
-                <td>Booking code</td>
-                <td>CASH03-09092026-014</td>
-              </tr>
-              <tr>
-                <td>Nama</td>
-                <td>Andi Saputra</td>
-              </tr>
-              <tr>
-                <td>Nomor WA</td>
-                <td>0812-3456-7890</td>
-              </tr>
-              <tr>
-                <td>Meja</td>
-                <td>Lounge Room</td>
-              </tr>
-              <tr>
-                <td>Jam</td>
-                <td>16.00–19.00 (3 jam)</td>
-              </tr>
-              <tr>
-                <td>Add-ons</td>
-                <td className="receipt-addons">{S.receipt.addons}</td>
-              </tr>
-              <tr>
-                <td>Notes</td>
-                <td>—</td>
-              </tr>
-              <tr className="receipt-member-row" style={{ display: S.receipt.member ? undefined : "none" }}>
-                <td>Member</td>
-                <td className="receipt-member">{S.receipt.member || '—'}</td>
-              </tr>
-            </tbody>
-          </table>
+          <BookingRows b={b} />
         </div>
         <div style={{ padding: "14px 18px 20px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
           <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "600", fontSize: "13px" }}>Thank you!</div>

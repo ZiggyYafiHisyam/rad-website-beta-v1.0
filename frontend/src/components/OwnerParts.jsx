@@ -2,7 +2,7 @@
    desktop console — the prototype copied the mobile markup across; here both
    views render the same component. */
 import {
-  useStore, rupiah, statShort, billingFormatDuration, MEMBER_POINT_CAP, HIST_DATES, RPT_TODAY, STAT_MONTHS,
+  useStore, rupiah, statShort, billingFormatDuration, MEMBER_POINT_CAP, HIST_DATES, STAT_MONTHS,
   personalAmount, chargeTotal, liveBooked, ownerOpenSession,
   statPickMonth, STAT_RANGE_OPTS, statRangeActive, statOpenDatePicker, statSetRange, statExportPdf, statExportCsv,
   statAttentionRows, statChartGeometry, ownerGo,
@@ -283,7 +283,7 @@ export function RefundWaitingList() {
 
 /* ---------- Reports: booking audit log for the picked date ---------- */
 export function auditShown(S) {
-  return S.auditLog.map((e, i) => ({ e, i })).filter((x) => (x.e.date || RPT_TODAY) === S.rptDate);
+  return S.auditLog.map((e, i) => ({ e, i })).filter((x) => (x.e.date || HIST_DATES[0]) === S.rptDate);
 }
 
 export function AuditLogRows() {
@@ -304,7 +304,7 @@ export function AuditLogRows() {
 }
 
 export function auditCountText(S) {
-  return auditShown(S).length + (S.rptDate === RPT_TODAY ? ' today' : ' log');
+  return auditShown(S).length + (S.rptDate === HIST_DATES[0] ? ' today' : ' log');
 }
 
 /* ---------- Reports: feedback inbox ---------- */
@@ -545,7 +545,7 @@ export function historyCounts(S) {
 }
 
 export function rptDateLabel(S) {
-  return (S.rptDate === RPT_TODAY ? 'Today · ' : '') + S.rptDate;
+  return (S.rptDate === HIST_DATES[0] ? 'Today · ' : '') + S.rptDate;
 }
 /* ---------- Performance detail — static demo charts (same in mobile + desktop) ---------- */
 export function PerfDayCard() {

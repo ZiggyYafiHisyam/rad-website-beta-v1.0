@@ -1,42 +1,16 @@
-import { S, notify, RPT_TODAY } from './state';
-import { billingFormatClock } from './format';
+import { S, notify } from './state';
+import { api, run, once } from './api';
 
-/* ================= LIVE TRANSACTION FEED ================= */
-export function ownerTxn(o) {
-  o.t = billingFormatClock(new Date());
-  S.liveTxns.unshift(o);
-  notify();
-}
-
-/* ================= BOOKING AUDIT LOG ================= */
-export function adminOverride(label) {
-  S.adminOverrideCount++;
-  const parts = label.split(' — ');
-  S.auditLog.unshift({
-    id: 'LIVE-' + (1000 + S.adminOverrideCount),
-    date: RPT_TODAY,
-    room: parts[0] || 'Counter',
-    admin: S.activeOperator,
-    action: /deleted|stopped/i.test(label) ? 'Override' : 'Time edit',
-    type: /deleted|stopped/i.test(label) ? 'override' : 'edit',
-    reason: parts.slice(1).join(' — ') || label,
-    booked: 'Today · ' + billingFormatClock(new Date()),
-    started: 'Today · ' + billingFormatClock(new Date()),
-    runEdit: '',
-    snacks: '—',
-    cust: '—',
-    phone: '—'
-  });
-  notify();
-}
+/* The live feed and the audit trail are written by the server as each action happens. */
 
 export function rptPickDate(d) {
   S.rptDate = d;
   notify();
 }
 
+/* Remember the entry's id, not its position — new entries arrive at the top while the popup is open */
 export function ownerOpenAudit(i) {
-  S.ui.audit = i;
+  S.ui.audit = S.auditLog[i] ? S.auditLog[i].id : null;
   notify();
 }
 
@@ -64,18 +38,14 @@ export function auditRows(e) {
 
 /* ================= FEEDBACKS ================= */
 export function ownerPinFeedback(id) {
-  for (let i = 0; i < S.ownerFeedbacks.length; i++) {
-    if (S.ownerFeedbacks[i].id === id) { S.ownerFeedbacks[i].pinned = true; break; }
-  }
-  notify();
+  return run(() => api('POST', '/owner/feedback/' + id + '/pin'));
 }
 
 export function ownerFeedbackMarkRead() {
   const open = S.ownerFeedbacks.filter((f) => !f.pinned).length;
   if (!open) return;
   if (!confirm('Mark ' + open + ' feedback as read? Pinned ones stay on your to-do list.')) return;
-  S.ownerFeedbacks = S.ownerFeedbacks.filter((f) => f.pinned);
-  notify();
+  return run(() => api('POST', '/owner/feedback/mark-read'));
 }
 
 export function ownerTodoOpen() {
@@ -89,8 +59,20 @@ export function ownerTodoClose() {
 }
 
 export function ownerTodoDone(id) {
-  S.ownerFeedbacks = S.ownerFeedbacks.filter((f) => f.id !== id);
-  notify();
+  return run(() => api('POST', '/owner/feedback/' + id + '/done'));
+}
+
+/* Customer side: anonymous feedback */
+export async function customerSendFeedback() {
+  const text = S.feedbackText.trim();
+  if (!text) { alert('Write something first.'); return; }
+  await once('feedback', async () => {
+    const ok = await run(() => api('POST', '/public/feedback', { text }).then(() => true));
+    if (!ok) return;
+    S.feedbackText = '';
+    S.feedbackSent = true;
+    notify();
+  });
 }
 
 export function pinnedFeedbacks() {

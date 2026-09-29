@@ -1,12 +1,12 @@
 import { useLocation } from 'react-router-dom';
-import { useStore } from '../../store';
+import { BookingRows, useBooking, money } from '../../components/BookingRows';
 import { Page, Phone } from '../../components/Phone';
 
 /* /payment/qris/:id — waiting for payment, or ?paid=true once it went through */
 export default function PaymentQris() {
-  const S = useStore();
+  const b = useBooking();
   const { search } = useLocation();
-  if (search.indexOf('paid=true') !== -1) return <QrisPaid S={S} />;
+  if (search.indexOf('paid=true') !== -1) return <QrisPaid b={b} />;
   return (
     <Page id="customer-payment-qris-pending">
       <Phone>
@@ -21,52 +21,17 @@ export default function PaymentQris() {
               <path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" />
             </svg>
           </div>
-          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "28px", marginBottom: "16px" }}>Rp 140.000</div>
+          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "28px", marginBottom: "16px" }}>{money(b)}</div>
           <span className="pill booked" style={{ marginBottom: "14px", display: "inline-block" }}>Status: Waiting for payment</span>
           <div className="section-label" style={{ textAlign: "left", marginTop: "14px" }}>Booking details</div>
-          <table className="receipt" style={{ textAlign: "left" }}>
-            <tbody>
-              <tr>
-                <td>Booking code</td>
-                <td>QRIS07-09092026-015</td>
-              </tr>
-              <tr>
-                <td>Nama</td>
-                <td>Andi Saputra</td>
-              </tr>
-              <tr>
-                <td>Nomor WA</td>
-                <td>0812-3456-7890</td>
-              </tr>
-              <tr>
-                <td>Meja</td>
-                <td>Lounge Room</td>
-              </tr>
-              <tr>
-                <td>Jam</td>
-                <td>16.00–19.00 (3 jam)</td>
-              </tr>
-              <tr>
-                <td>Add-ons</td>
-                <td className="receipt-addons">{S.receipt.addons}</td>
-              </tr>
-              <tr>
-                <td>Notes</td>
-                <td>—</td>
-              </tr>
-              <tr className="receipt-member-row" style={{ display: S.receipt.member ? undefined : "none" }}>
-                <td>Member</td>
-                <td className="receipt-member">{S.receipt.member || '—'}</td>
-              </tr>
-            </tbody>
-          </table>
+          <BookingRows b={b} />
         </div>
       </Phone>
     </Page>
   );
 }
 
-function QrisPaid({ S }) {
+function QrisPaid({ b }) {
   return (
     <Page id="customer-payment-qris-paid">
       <Phone>
@@ -77,44 +42,9 @@ function QrisPaid({ S }) {
             <path d="M7.5 12.5l3 3 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <div className="h-title" style={{ fontSize: "16px", color: "var(--green)" }}>Payment successful</div>
-          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "28px", margin: "12px 0 18px" }}>Rp 140.000</div>
+          <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "700", fontSize: "28px", margin: "12px 0 18px" }}>{money(b)}</div>
           <div className="section-label" style={{ textAlign: "left" }}>Booking details</div>
-          <table className="receipt" style={{ textAlign: "left" }}>
-            <tbody>
-              <tr>
-                <td>Booking code</td>
-                <td>QRIS07-09092026-015</td>
-              </tr>
-              <tr>
-                <td>Nama</td>
-                <td>Andi Saputra</td>
-              </tr>
-              <tr>
-                <td>Nomor WA</td>
-                <td>0812-3456-7890</td>
-              </tr>
-              <tr>
-                <td>Meja</td>
-                <td>Lounge Room</td>
-              </tr>
-              <tr>
-                <td>Jam</td>
-                <td>16.00–19.00 (3 jam)</td>
-              </tr>
-              <tr>
-                <td>Add-ons</td>
-                <td className="receipt-addons">{S.receipt.addons}</td>
-              </tr>
-              <tr>
-                <td>Notes</td>
-                <td>—</td>
-              </tr>
-              <tr className="receipt-member-row" style={{ display: S.receipt.member ? undefined : "none" }}>
-                <td>Member</td>
-                <td className="receipt-member">{S.receipt.member || '—'}</td>
-              </tr>
-            </tbody>
-          </table>
+          <BookingRows b={b} />
         </div>
         <div style={{ padding: "14px 18px 20px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
           <div style={{ fontFamily: "'Rajdhani',sans-serif", fontWeight: "600", fontSize: "13px" }}>Thank you!</div>
