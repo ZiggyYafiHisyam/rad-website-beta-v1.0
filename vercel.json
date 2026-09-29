@@ -3,7 +3,28 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/tv", "destination": "/index.html" },
+    { "source": "/tv/:id", "destination": "/index.html" },
+    { "source": "/payment/cash", "destination": "/index.html" },
+    { "source": "/payment/cash/:id", "destination": "/index.html" },
+    { "source": "/payment/qris", "destination": "/index.html" },
+    { "source": "/payment/qris/:id", "destination": "/index.html" },
+    { "source": "/member", "destination": "/index.html" },
+    { "source": "/feedback", "destination": "/index.html" },
+    { "source": "/admin/login", "destination": "/index.html" },
+    { "source": "/admin/home", "destination": "/index.html" },
+    { "source": "/admin/inventory", "destination": "/index.html" },
+    { "source": "/admin/closing", "destination": "/index.html" },
+    { "source": "/owner/login", "destination": "/index.html" },
+    { "source": "/owner/live", "destination": "/index.html" },
+    { "source": "/owner/stats", "destination": "/index.html" },
+    { "source": "/owner/reports", "destination": "/index.html" },
+    { "source": "/owner/history", "destination": "/index.html" },
+    { "source": "/owner/people", "destination": "/index.html" },
+    { "source": "/owner/stock", "destination": "/index.html" },
+    { "source": "/owner/desktop", "destination": "/index.html" },
+    { "source": "/:path*", "destination": "/api/router?path=:path*" }
   ],
   "headers": [
     {

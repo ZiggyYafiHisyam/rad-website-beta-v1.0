@@ -36,8 +36,25 @@ npm run build    # production build in dist/
 | `/owner/stock` | Owner · snacks, rates, add-ons, redeem catalog |
 | `/owner/desktop` | Owner · desktop console |
 
-Unknown paths resolve the same way the prototype's router did: a trailing segment is dropped
-(`/admin/home/x` → `/admin/home`), otherwise the customer home is shown.
+### URL routing
+
+`src/routes.js` is the one map of which URLs are pages. Anything else is redirected:
+
+| You open | You land on |
+| --- | --- |
+| `/admin`, `/admin/<unknown>` | `/admin/login` |
+| `/owner`, `/owner/<unknown>` | `/owner/login` |
+| a page with extra segments, e.g. `/admin/home/x` | that page, `/admin/home` |
+| a trailing slash, e.g. `/owner/stats/` | `/owner/stats` |
+| any other unknown path | `/` |
+
+The same map drives all three places a URL is resolved:
+
+- `api/router.mjs` — the Vercel function; `vercel.json` serves the app for real page paths and sends every other path there for a 302 redirect.
+- `vite.config.js` — the same redirects for `npm run dev` / `npm run preview`.
+- `src/App.jsx` — in-app URL changes (back / forward) after the app has loaded.
+
+When adding a page, add its path to `src/routes.js` and to the `/index.html` rewrites in `vercel.json`.
 
 ## Layout
 

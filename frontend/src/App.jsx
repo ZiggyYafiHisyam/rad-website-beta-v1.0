@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { setNavigator, startClock } from './store';
 import Modals from './components/Modals';
+import { resolveRedirect } from './routes';
 
 import CustomerHome from './pages/customer/CustomerHome';
 import CustomerTable from './pages/customer/CustomerTable';
@@ -22,40 +23,12 @@ import OwnerPeople from './pages/owner/OwnerPeople';
 import OwnerStock from './pages/owner/OwnerStock';
 import OwnerDesktop from './pages/owner/OwnerDesktop';
 
-/* The same path table the prototype's router used */
-const ROUTES = {
-  '/':                  CustomerHome,
-  '/tv':                CustomerTable,
-  '/payment/cash':      PaymentCash,
-  '/payment/qris':      PaymentQris,
-  '/member':            CustomerMember,
-  '/feedback':          CustomerFeedback,
-  '/admin/login':       AdminLogin,
-  '/admin/home':        AdminHome,
-  '/admin/inventory':   AdminInventory,
-  '/admin/closing':     AdminClosing,
-  '/owner/login':       OwnerLogin,
-  '/owner/live':        OwnerLive,
-  '/owner/stats':       OwnerRevenue,
-  '/owner/reports':     OwnerReports,
-  '/owner/history':     OwnerHistory,
-  '/owner/people':      OwnerPeople,
-  '/owner/stock':       OwnerStock,
-  '/owner/desktop':     OwnerDesktop
-};
-
-/* Anything else: strip a trailing slash, then try the parent path
-   (/tv/123 → /tv, /payment/cash/5 → /payment/cash), else the customer home. */
+/* Any URL that is not a page (/admin, /owner, unknown or trailing-slash paths)
+   is sent where src/routes.js says — the same map the server redirects with. */
 function Fallback() {
-  let path = useLocation().pathname;
-  if (path.length > 1 && path.slice(-1) === '/') path = path.slice(0, -1);
-  if (ROUTES[path]) { const Page = ROUTES[path]; return <Page />; }
-  const parts = path.split('/');
-  if (parts.length > 1) {
-    const parent = parts.slice(0, -1).join('/') || '/';
-    if (ROUTES[parent]) { const Page = ROUTES[parent]; return <Page />; }
-  }
-  return <CustomerHome />;
+  const { pathname, search } = useLocation();
+  const target = resolveRedirect(pathname);
+  return target ? <Navigate to={target + search} replace /> : <CustomerHome />;
 }
 
 export default function App() {
@@ -71,8 +44,11 @@ export default function App() {
     <div className="stage">
       <Routes>
         <Route path="/" element={<CustomerHome />} />
+        <Route path="/tv" element={<CustomerTable />} />
         <Route path="/tv/:id" element={<CustomerTable />} />
+        <Route path="/payment/cash" element={<PaymentCash />} />
         <Route path="/payment/cash/:id" element={<PaymentCash />} />
+        <Route path="/payment/qris" element={<PaymentQris />} />
         <Route path="/payment/qris/:id" element={<PaymentQris />} />
         <Route path="/member" element={<CustomerMember />} />
         <Route path="/feedback" element={<CustomerFeedback />} />
