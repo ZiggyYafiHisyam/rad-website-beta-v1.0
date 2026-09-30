@@ -140,6 +140,7 @@ export const S = {
   ...staffDefaults(),
   ready: false,          // first snapshot from the server has arrived
   serverDown: false,
+  demo: false,           // running on the bundled snapshot because no backend answered
 
   memberSearch: '',
 

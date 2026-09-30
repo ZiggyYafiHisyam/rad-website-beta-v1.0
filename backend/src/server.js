@@ -25,6 +25,21 @@ export function createApp(db) {
     res.setHeader('Referrer-Policy', 'same-origin');
     next();
   });
+  /* Frontend hosted elsewhere (e.g. Vercel)? CORS_ORIGIN=https://your-site.vercel.app (comma-separate several) */
+  const origins = (process.env.CORS_ORIGIN || '').split(',').map((o) => o.trim()).filter(Boolean);
+  if (origins.length) {
+    app.use('/api', (req, res, next) => {
+      const o = req.headers.origin;
+      if (o && (origins.includes('*') || origins.includes(o))) {
+        res.setHeader('Access-Control-Allow-Origin', o);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      }
+      if (req.method === 'OPTIONS') return res.sendStatus(204);
+      next();
+    });
+  }
   app.use('/api', express.json({ limit: '100kb' }), attachUser, api(db));
   app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route' }));
 

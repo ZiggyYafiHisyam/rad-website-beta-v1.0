@@ -52,11 +52,24 @@ export default function App() {
   /* Every page opens scrolled to the top */
   useEffect(() => { window.scrollTo(0, 0); }, [pathname, search]);
 
+  const noData = S.serverDown && !S.LIVE_ROOMS.length;
+  if (noData) {
+    return (
+      <div className="stage">
+        <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-dim)", fontSize: "14px" }}>
+          <div className="h-title" style={{ marginBottom: "8px" }}>Can’t reach the server</div>
+          <div style={{ fontSize: "12px", color: "var(--text-faint)", marginBottom: "18px" }}>The RAD backend isn’t answering. Check that it is running, then try again.</div>
+          <div className="btn primary" style={{ display: "inline-block", padding: "10px 22px" }} onClick={refresh}>Try again</div>
+        </div>
+      </div>
+    );
+  }
   if (!S.ready) return <div className="stage"><div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-faint)", fontSize: "13px" }}>Loading…</div></div>;
   if (!allowed) return null;
 
   return (
     <div className="stage">
+      {S.demo ? <div style={{ position: "fixed", bottom: 8, left: "50%", transform: "translateX(-50%)", zIndex: 999, background: "var(--surface-2, #222)", color: "var(--text-dim)", border: "1px solid var(--border, #333)", borderRadius: 999, fontSize: "11px", padding: "4px 12px", pointerEvents: "none" }}>Demo preview · no backend connected</div> : null}
       {S.serverDown ? <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: "var(--red)", color: "#fff", textAlign: "center", fontSize: "12px", padding: "6px" }}>Can’t reach the server — retrying…</div> : null}
       <Routes>
         <Route path="/" element={<CustomerHome />} />
